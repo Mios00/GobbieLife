@@ -51,6 +51,7 @@
       pendingChoice: null, // {title,text,options}
 
       chronicle: [],
+      chronCount: 0,       // monotonic entry counter (UI dedup key)
       ending: null,        // set when game is finished
       log: [],             // short transient action feedback
     };
@@ -167,6 +168,10 @@
   function chronicle(s, msg) {
     s.chronicle.push({ t: Date.now(), msg });
     if (s.chronicle.length > 200) s.chronicle.shift();
+    // monotonic count of every entry ever added — the UI keys its dedup on this
+    // so a re-render is never skipped due to timestamp/text collisions, even at
+    // the 200-entry cap where length stops changing.
+    s.chronCount = (s.chronCount || 0) + 1;
   }
   Game.chronicle = chronicle;
 
@@ -629,6 +634,7 @@
       ? m.chronicle.filter((c) => c && typeof c.msg === 'string')
           .map((c) => ({ t: n(c.t, Date.now()), msg: c.msg })).slice(-200)
       : [];
+    m.chronCount = Math.max(intNonneg(m.chronCount, 0), m.chronicle.length); // never behind stored entries
     // ending: only a KNOWN, own-property ending id (rejects "__proto__" etc.)
     const eid = (m.ending && typeof m.ending === 'object') ? m.ending.id : null;
     if (typeof eid === 'string' && has(GG.ENDINGS, eid)) {

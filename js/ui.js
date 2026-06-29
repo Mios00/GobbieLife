@@ -244,15 +244,18 @@
   // yank the scroll position — otherwise the ~4×/sec re-render snapped the view
   // back to the bottom and you couldn't read history. We auto-follow only when
   // you're already pinned to the bottom; if you've scrolled up, we leave you there.
-  let lastChronSig = '';
+  let lastChronState = null, lastChronSig = null;
   function renderChronicle(s) {
     const el = $('chronicle');
-    const last = s.chronicle[s.chronicle.length - 1];
-    // key on length + last entry's TEXT (robust at the 200-entry cap and against
-    // same-millisecond timestamps; identical text+length ⇒ identical render anyway)
-    const sig = s.chronicle.length + '|' + (last ? last.msg : '') + '|' + (s.legendIntro ? 1 : 0);
+    // a brand-new tale (or imported save) is a different state object — force a
+    // repaint so the prior game's dedup key can't suppress the first render.
+    if (s !== lastChronState) { lastChronState = s; lastChronSig = null; }
+    // key on the monotonic entry counter (never collides — not on timestamps or
+    // text), plus a fallback to length for legacy saves without the counter.
+    const count = s.chronCount != null ? s.chronCount : s.chronicle.length;
+    const sig = count + '|' + (s.legendIntro ? 1 : 0);
     if (sig === lastChronSig) return;                      // nothing new → don't touch the DOM/scroll
-    const firstPaint = lastChronSig === '';
+    const firstPaint = lastChronSig === null;
     const atBottom = firstPaint || (el.scrollHeight - el.scrollTop - el.clientHeight) < 28;
     const prevTop = el.scrollTop;
     lastChronSig = sig;
