@@ -153,6 +153,8 @@
 
     for (const id in GG.BUILDINGS) {
       const def = GG.BUILDINGS[id];
+      // gradual reveal: hide the option entirely until the tribe has grown enough
+      if (!Game.buildingRevealed(s, id)) continue;
       const lvl = s.buildings[id];
       const single = Game.buildingCost(s, id); // null when maxed
       const maxed = !single;
@@ -189,6 +191,9 @@
         <div class="bblurb">${esc(def.blurb)}</div>${lockMsg}
       </div>`;
     }
+    // teaser so the gradual reveal doesn't feel like a dead end
+    const moreToCome = Object.keys(GG.BUILDINGS).some((id) => !Game.buildingRevealed(s, id));
+    if (moreToCome) html += `<div class="hint moreBuild">The warren whispers of more to build as it grows…</div>`;
     $('build').innerHTML = html;
   }
 
@@ -220,33 +225,46 @@
 
   function renderAnnals(s) {
     const list = GG.ACHIEVEMENTS || [];
-    const earned = list.filter((a) => s.achievements[a.id]).length;
-    let rows = '';
-    for (const a of list) {
-      const got = !!s.achievements[a.id];
-      const hide = a.secret && !got;
-      const name = hide ? '???' : a.name;
-      const desc = hide ? 'A secret deed, yet to be done.' : a.desc;
-      rows += `<div class="arow ${got ? 'got' : ''}">
-        <span class="amark">${got ? '✦' : '·'}</span>
-        <span class="atext"><b>${esc(name)}</b><span class="adesc">${esc(desc)}</span></span>
-      </div>`;
-    }
+    const earned = list.filter((a) => s.achievements[a.id]);
+    const remaining = list.length - earned.length;
+    // only EARNED deeds are shown — locked ones stay hidden until you do them
+    let rows = earned.map((a) => `<div class="arow got">
+        <span class="amark">✦</span>
+        <span class="atext"><b>${esc(a.name)}</b><span class="adesc">${esc(a.desc)}</span></span>
+      </div>`).join('');
+    if (!earned.length) rows = `<div class="hint">No deeds yet. Your legend is unwritten.</div>`;
+    const footer = remaining > 0
+      ? `<div class="hint">${remaining} more deed${remaining === 1 ? '' : 's'} wait to be earned…</div>`
+      : `<div class="hint">Every deed earned. A complete legend.</div>`;
     $('annals').innerHTML =
-      `<h2>Annals <span class="cap">${earned}/${list.length}</span></h2>${rows}`;
+      `<h2>Annals <span class="cap">${earned.length}/${list.length}</span></h2>${rows}${footer}`;
   }
 
+  // Only rebuild the Chronicle when a new entry actually arrives, and never
+  // yank the scroll position — otherwise the ~4×/sec re-render snapped the view
+  // back to the bottom and you couldn't read history. We auto-follow only when
+  // you're already pinned to the bottom; if you've scrolled up, we leave you there.
+  let lastChronSig = '';
   function renderChronicle(s) {
+    const el = $('chronicle');
+    const last = s.chronicle[s.chronicle.length - 1];
+    // key on length + last entry's TEXT (robust at the 200-entry cap and against
+    // same-millisecond timestamps; identical text+length ⇒ identical render anyway)
+    const sig = s.chronicle.length + '|' + (last ? last.msg : '') + '|' + (s.legendIntro ? 1 : 0);
+    if (sig === lastChronSig) return;                      // nothing new → don't touch the DOM/scroll
+    const firstPaint = lastChronSig === '';
+    const atBottom = firstPaint || (el.scrollHeight - el.scrollTop - el.clientHeight) < 28;
+    const prevTop = el.scrollTop;
+    lastChronSig = sig;
+
     let html = '<h2>Chronicle</h2>';
     if (s.legendIntro) html += `<div class="cintro">${esc(s.legendIntro)}</div>`;
-    const recent = s.chronicle.slice(-40);
-    html += recent.map((c) => {
+    html += s.chronicle.map((c) => {                       // show the full stored history (up to 200)
       const grand = c.msg.startsWith('—') || c.msg.startsWith('═');
       return `<div class="centry ${grand ? 'grand' : ''}">${esc(c.msg)}</div>`;
     }).join('');
-    const el = $('chronicle');
     el.innerHTML = html;
-    el.scrollTop = el.scrollHeight;
+    el.scrollTop = atBottom ? el.scrollHeight : prevTop;   // follow if pinned, else keep your place
   }
 
   // The UI re-renders ~4×/sec. The modal must only rebuild its innerHTML when

@@ -28,6 +28,7 @@
       totals: { shiniesTotal: 0 }, // lifetime, for milestones
 
       population: 1,
+      peakPop: 1,           // highest population ever reached (gates building reveals)
       jobs: { forage: 0, dig: 0, raid: 0 },
 
       buildings: {
@@ -68,6 +69,13 @@
 
   Game.distinctBuildings = function (s) {
     return Object.values(s.buildings).filter((v) => v > 0).length;
+  };
+
+  // a building's option only appears once the tribe has PEAKED at revealPop
+  // goblins — so the build menu unfolds gradually as the warren grows.
+  Game.buildingRevealed = function (s, id) {
+    const need = GG.BUILDINGS[id].revealPop || 0;
+    return (s.peakPop || s.population || 1) >= need;
   };
 
   // production per second (net), plus a breakdown for the UI
@@ -179,6 +187,7 @@
     const def = GG.BUILDINGS[id];
     if (def.requiresChapter && s.chapter < def.requiresChapter) return false;
     if (def.needs && !s.unlocks[def.needs]) return false;
+    if (!Game.buildingRevealed(s, id)) return false;
     const cost = Game.buildingCost(s, id);
     if (!Game.canAfford(s, cost)) return false;
     for (const res in cost) s.resources[res] -= cost[res];
@@ -223,7 +232,7 @@
 
   // ---- breeding (passive population growth) --------------------
   function breedCost(s) {
-    return Math.ceil(C.breedBaseCostMush * Math.pow(1.25, s.population - 1));
+    return Math.ceil(C.breedBaseCostMush * Math.pow(C.breedScale || 1.15, s.population - 1));
   }
   function tickBreeding(s, dt) {
     if (!s.unlocks.breeding) return;
@@ -487,6 +496,7 @@
 
     tickStory(s, dtSec);
     tickEvents(s, dtSec);
+    if (s.population > (s.peakPop || 0)) s.peakPop = s.population; // for gradual building reveals
     checkChapters(s);
     checkAchievements(s);
     s.lastSeen = Date.now();
@@ -588,6 +598,7 @@
     m.totals = { shiniesTotal: nonneg(m.totals && m.totals.shiniesTotal) };
     // population & job assignments (rendered raw → must be plain integers)
     m.population = Math.max(1, intNonneg(m.population, 1));
+    m.peakPop = Math.max(m.population, intNonneg(m.peakPop, m.population));
     const jobs = {}; for (const k of ['forage', 'dig', 'raid']) jobs[k] = intNonneg(m.jobs && m.jobs[k]); m.jobs = jobs;
     // buildings: only known ids, integer levels (rendered raw as ×level)
     const blds = {}; for (const id in base.buildings) blds[id] = intNonneg(m.buildings && m.buildings[id]); m.buildings = blds;

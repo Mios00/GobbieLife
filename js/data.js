@@ -15,10 +15,11 @@
     upkeepPerGoblin: 0.03,   // mushrooms/sec eaten per goblin
     ambientStoryEverySec: 75, // ambient chronicle entry cadence
     raidDurationSec: 16,
-    breedBaseCostMush: 12,   // mushrooms per new goblin (scales with pop)
+    breedBaseCostMush: 6,    // mushrooms per new goblin (scales with pop) — cheap, breed a big tribe
+    breedScale: 1.15,        // per-goblin breed-cost growth (gentler so large warrens stay viable)
     breedSecPerGoblin: 9,    // seconds of progress to spawn a goblin
-    eventMinSec: 80,         // soonest a random event can interrupt
-    eventMaxSec: 150,        // latest before one is guaranteed
+    eventMinSec: 45,         // soonest a random event can interrupt (more frequent now)
+    eventMaxSec: 95,         // latest before one is guaranteed
   };
 
   // --- Resources -------------------------------------------------
@@ -29,15 +30,20 @@
   };
 
   // --- Jobs (population assignments) -----------------------------
+  // Per-goblin output is deliberately small: it takes ~3× the goblins to move
+  // the needle, so the game is about growing a big tribe (and breeding is cheap).
   GG.JOBS = {
-    forage: { name: 'Foragers', verb: 'forage', perGoblin: 0.6, out: 'mushrooms' },
-    dig:    { name: 'Diggers',  verb: 'dig',    perGoblin: 0.5, out: 'scrap' },
-    raid:   { name: 'Raiders',  verb: 'raid',   perGoblin: 0,   out: null }, // used by war tent
+    forage: { name: 'Foragers', verb: 'forage', perGoblin: 0.2,  out: 'mushrooms' },
+    dig:    { name: 'Diggers',  verb: 'dig',    perGoblin: 0.17, out: 'scrap' },
+    raid:   { name: 'Raiders',  verb: 'raid',   perGoblin: 0,    out: null }, // used by war tent
   };
 
   // --- Buildings -------------------------------------------------
   // cost(level) returns the cost to buy the NEXT level (current level passed in).
   // effects are interpreted in game.js.
+  // `revealPop`: the build option stays hidden until your tribe has *peaked* at
+  // this many goblins — so the build menu unfolds gradually as the warren grows
+  // rather than dumping every option at once. (Default 0 = always available.)
   GG.BUILDINGS = {
     mushroomPatch: {
       name: 'Mushroom Patch',
@@ -54,7 +60,7 @@
     burrow: {
       name: 'Burrow',
       blurb: 'More tunnels, more goblins. Raises your goblin cap and lets the tribe breed.',
-      base: { mushrooms: 22, scrap: 16 }, growth: 1.7,
+      base: { mushrooms: 12, scrap: 9 }, growth: 1.6,
       capPlus: 3,
       unlocks: 'breeding',
       settle: 1,
@@ -66,13 +72,7 @@
       unlocks: 'raids',
       lean: { cruelty: 1 },
       settle: 1,
-    },
-    lookout: {
-      name: 'Lookout Warren',
-      blurb: 'Sharp-eyed sentries watch the dark. Raids go better and nasty surprises come less often.',
-      base: { scrap: 30, mushrooms: 20 }, growth: 1.8,
-      needs: 'raids',
-      settle: 1,
+      revealPop: 4,
     },
     tradingPost: {
       name: 'Trading Post',
@@ -81,6 +81,15 @@
       unlocks: 'trade',
       lean: { openness: 1 },
       settle: 1,
+      revealPop: 5,
+    },
+    lookout: {
+      name: 'Lookout Warren',
+      blurb: 'Sharp-eyed sentries watch the dark. Raids go better and nasty surprises come less often.',
+      base: { scrap: 30, mushrooms: 20 }, growth: 1.8,
+      needs: 'raids',
+      settle: 1,
+      revealPop: 6,
     },
     brewery: {
       name: 'Mushroom Brewery',
@@ -90,6 +99,7 @@
       needs: 'trade',
       lean: { openness: 1 },
       settle: 1,
+      revealPop: 8,
     },
     totem: {
       name: 'Totem of Tales',
@@ -97,6 +107,7 @@
       base: { scrap: 30, mushrooms: 30 }, growth: 2.0,
       unlocks: 'destiny',
       settle: 1,
+      revealPop: 10,
     },
     greatHall: {
       name: 'Great Hall',
@@ -104,6 +115,7 @@
       base: { scrap: 220, shinies: 90, mushrooms: 160 }, growth: 3.0,
       max: 1,
       requiresChapter: 4,
+      revealPop: 12,
       unlocks: 'finale',
       settle: 2,
     },
@@ -456,6 +468,114 @@
             log: 'You looked into the Totem\'s mirror and grinned. Whatever you are becoming, you grabbed it with both hands and a rudimentary marketing plan.' },
           { label: 'Recoil — this is NOT the brand', lean: {}, _soften: true,
             log: 'You looked away from the mirror. A tale can still pivot, you tell yourself. The road has forks yet, and one of them surely has better optics.' },
+        ],
+      },
+    },
+
+    // ---- negative / hardship events (made rarer by each Lookout Warren) ----
+    {
+      id: 'strayLost', weight: 2, bad: true,
+      when: (s) => s.population >= 5,
+      text: 'A goblin wanders too deep chasing a glint, and never finds the way back. The warren is one smaller, and quieter for it.',
+      effect: { pop: -1 },
+      silly: { text: 'A goblin left "to find himself" and did not leave a forwarding address. HR has reclassified him as "spiritually relocated." (−1 goblin)' },
+    },
+    {
+      id: 'vermin', weight: 2, bad: true,
+      when: (s) => s.resources.mushrooms > 20,
+      text: 'Cave-rats get into the mushroom stores and feast. What they don\'t eat, they ruin.',
+      effect: { take: { mushrooms: 0.2 } },
+      silly: { text: 'Cave-rats throw a catered banquet in your mushroom stores, leave a thank-you note, and abscond. The note is, infuriatingly, polite.' },
+    },
+    {
+      id: 'caveIn', weight: 2, bad: true,
+      when: (s) => s.buildings.scrapHeap > 0,
+      text: 'A tunnel gives way in the night, burying a good swathe of the scrap heap under rubble.',
+      effect: { take: { scrap: 0.25 } },
+      silly: { text: 'A tunnel collapses dramatically and exactly on schedule, per a prophecy nobody bothered to read. The scrap heap is now, technically, a scrap valley.' },
+    },
+    {
+      id: 'pilfered', weight: 2, bad: true,
+      when: (s) => s.resources.shinies > 15,
+      text: 'You wake to a clutch of shinies gone — an inside job, or a very brave magpie. No one confesses.',
+      effect: { take: { shinies: 0.3 }, lean: { cruelty: 1 } },
+      silly: { text: 'A magpie unionizes with three goblins and stages a heist on your hoard. The magpie is now, somehow, middle management. (−shinies)' },
+    },
+    {
+      id: 'predator', weight: 3, bad: true,
+      when: (s) => s.chapter >= 2 && s.population >= 4,
+      title: 'Something Big in the Dark',
+      text: 'An owlbear has caught the warren\'s scent and circles closer each night. It is bigger than your biggest goblin, and hungrier.',
+      options: [
+        { label: 'Hunt it down', loot: { mushrooms: [20, 35], scrap: [6, 12] }, risk: 0.4, lean: { cruelty: 2 },
+          log: 'You took the owlbear in a roaring, ridiculous melee. A goblin or two paid for it — but the warren eats like kings for a week, and the pelt is magnificent.' },
+        { label: 'Scare it off with fire and noise', cost: { mushrooms: 8 },
+          log: 'You drove the beast off with torches and a truly horrible amount of shrieking. It slinks away hungry. So, a little, do you.' },
+        { label: 'Abandon the outer burrows', lean: { wanderlust: 2 },
+          log: 'You pulled everyone deep and let the owlbear have the outskirts. Ground given is ground you can take back later. Probably.' },
+      ],
+      silly: {
+        title: 'A Large Adult Owlbear',
+        text: 'An owlbear with the energy of an unpaid invoice circles the warren nightly. It has reviewed your defenses and left two stars: "hungry here, would maul again."',
+        options: [
+          { label: 'Pick a fight with the owlbear', loot: { mushrooms: [20, 35], scrap: [6, 12] }, risk: 0.4, lean: { cruelty: 2 },
+            log: 'You fought an owlbear in melee like an absolute fool, and won like an absolute legend. A goblin or two are now stories. The pelt is, frankly, iconic.' },
+          { label: 'Out-shriek it', cost: { mushrooms: 8 },
+            log: 'You and the whole warren out-shrieked an apex predator. It left to seek therapy. You are not proud. You are a little proud.' },
+          { label: 'Rebrand the outskirts as "its problem"', lean: { wanderlust: 2 },
+            log: 'You ceded the outer burrows to the owlbear and updated the map accordingly. Real estate is fake anyway.' },
+        ],
+      },
+    },
+    {
+      id: 'rivalWarband', weight: 3, bad: true,
+      when: (s) => s.raidCount >= 1 || s.chapter >= 3,
+      title: 'Another Warren\'s Warband',
+      text: 'A rival goblin warband — bigger, meaner, and annoyed by your growing reputation — appears at the gate demanding tribute.',
+      options: [
+        { label: 'Fight them off', loot: { scrap: [8, 16] }, risk: 0.45, lean: { cruelty: 3 },
+          log: 'Goblin against goblin in the mud. You won — barely. The warren held, the survivors swagger, and word travels: this warren bites.' },
+        { label: 'Pay the tribute', cost: { shinies: 14 }, lean: { greed: 1 },
+          log: 'You paid them off in shinies and swallowed pride. They\'ll be back next season, of course. They always are.' },
+        { label: 'Buy them a drink and a deal', cost: { shinies: 8 }, lean: { openness: 3 },
+          log: 'You got the rival chief gloriously drunk and left as something like allies. Two warrens are scarier than one.' },
+      ],
+      silly: {
+        title: 'A Rival Warband (With Brand Synergy)',
+        text: 'A bigger, meaner warband shows up demanding tribute and, weirdly, a collaboration. Their chief has a business card. It is a flat rock with "CHIEF" scratched on it.',
+        options: [
+          { label: 'Decline the partnership violently', loot: { scrap: [8, 16] }, risk: 0.45, lean: { cruelty: 3 },
+            log: 'Negotiations broke down into the mud. You won, barely. Their business card is yours now. It says CHIEF. You are CHIEF now.' },
+          { label: 'Pay the "consulting fee"', cost: { shinies: 14 }, lean: { greed: 1 },
+            log: 'You paid the shakedown and got an invoice marked "synergy." They\'ll be back. They always circle back.' },
+          { label: 'Merge the two warbands over drinks', cost: { shinies: 8 }, lean: { openness: 3 },
+            log: 'You got the rival chief catastrophically drunk and merged the warbands. The new org chart is a disaster. The vibes are immaculate.' },
+        ],
+      },
+    },
+    {
+      id: 'famine', weight: 3, bad: true,
+      when: (s) => s.population >= 6,
+      title: 'Lean Times',
+      text: 'The stores are thin and too many mouths are open. The tribe looks to you, hungry.',
+      options: [
+        { label: 'Ration hard', lean: { cruelty: 1 },
+          log: 'You cut every belt to the last notch. Tempers fray, but everyone makes it through. Just.' },
+        { label: 'Send a desperate foraging party', loot: { mushrooms: [18, 30] }, risk: 0.35,
+          log: 'You sent goblins into the dangerous deep for food. They came back with full sacks — most of them did.' },
+        { label: 'Buy food from the road', cost: { shinies: 12 }, give: { mushrooms: 30 }, lean: { openness: 2 },
+          log: 'You swallowed your pride and your shinies and bought a cartload of turnips from a smug human farmer. The tribe eats. He gloats. Worth it.' },
+      ],
+      silly: {
+        title: 'Snacktageddon',
+        text: 'The stores are alarmingly empty and the tribe is doing the thing where they stare at you and slowly tilt their heads. It is, frankly, sinister.',
+        options: [
+          { label: 'Declare hard rationing', lean: { cruelty: 1 },
+            log: 'You introduced portion control to a room full of goblins. You survived. Barely. So did they. Nobody is happy. Everybody is alive.' },
+          { label: 'Send a high-risk snack expedition', loot: { mushrooms: [18, 30] }, risk: 0.35,
+            log: 'You dispatched goblins into the deep dark for snacks. They returned with glorious hauls — most of them, anyway.' },
+          { label: 'DoorGoblin a cart of turnips', cost: { shinies: 12 }, give: { mushrooms: 30 }, lean: { openness: 2 },
+            log: 'You paid a smug human farmer for emergency turnips. He left a five-star review of himself. The tribe eats. You seethe.' },
         ],
       },
     },
