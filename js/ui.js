@@ -18,7 +18,9 @@
     return (n / 1e6).toFixed(2) + 'M';
   };
   const sign = (n) => (n >= 0 ? '+' : '') + n.toFixed(1);
-  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  // escape for HTML text AND quoted-attribute contexts (covers & < > " ')
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   // ---------------------------------------------------------------
   UI.render = function (s) {
@@ -269,6 +271,7 @@
         const afford = !o.cost || Game.canAfford(s, o.cost);
         const costStr = o.cost
           ? ` <span class="ocost ${afford ? '' : 'short'}">(${Object.entries(o.cost)
+              .filter(([res]) => GG.RESOURCES[res])  // ignore unknown resource keys
               .map(([res, n]) => fmt(n) + GG.RESOURCES[res].sym).join(' ')})</span>`
           : '';
         return `<button class="act" data-act="choice" data-i="${i}" ${afford ? '' : 'disabled'}>${esc(o.label)}${costStr}</button>`;

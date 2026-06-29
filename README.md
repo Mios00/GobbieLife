@@ -48,6 +48,16 @@ portable code.
 Saves live in your browser (`localStorage`) and the warren keeps working while
 you're away (offline progress, capped at 8 hours).
 
+## Privacy & security
+
+GOBLIN is a fully **client-side** game: no backend, no accounts, no analytics,
+no network requests of any kind. Your save never leaves your browser. The page
+ships a strict **Content-Security-Policy** (same-origin scripts only, no inline
+script/event handlers, no outbound connections) as defense-in-depth, and all
+displayed text is HTML-escaped. Imported **save codes** are treated as untrusted
+input and fully type-coerced/validated before use, so a shared code can't inject
+markup or corrupt the game.
+
 ## How it works (the "generated without your knowledge" part)
 
 There's no backend and no live AI — that keeps it tiny and free to host. The

@@ -538,10 +538,16 @@
   };
   Game.importCode = function (code) {
     try {
+      if (typeof code !== 'string') return null;
       const json = decodeURIComponent(escape(atob(code.trim())));
       const s = JSON.parse(json);
-      if (!s || typeof s !== 'object' || !s.resources) return null;
-      return migrate(s);
+      if (!s || typeof s !== 'object' || Array.isArray(s) || !s.resources) return null;
+      const state = migrate(s);
+      // a freshly imported save is never mid-encounter: drop any interactive
+      // objects so a crafted code can't smuggle a renderable choice/raid blob.
+      state.pendingChoice = null;
+      state.raid = { active: false, returnsAt: 0, target: null };
+      return state;
     } catch (e) { return null; }
   };
 
@@ -557,8 +563,77 @@
     merged.totals = Object.assign({}, base.totals, s.totals);
     merged.raid = Object.assign({}, base.raid, s.raid);
     merged.achievements = Object.assign({}, s.achievements || {});
-    if (merged.buyAmt == null) merged.buyAmt = 1;
-    if (merged.silliness == null) merged.silliness = 0.3; // legacy saves stay mostly-earnest
-    return merged;
+    return sanitizeState(merged, base);
+  }
+
+  // ---- save hardening ------------------------------------------
+  // A save can come from an untrusted source (a shared import code), and
+  // several numeric fields are interpolated straight into the DOM. Coerce
+  // EVERYTHING to its expected type/range here so loaded data can never carry
+  // markup or break the simulation. This is the single trust boundary for
+  // both localStorage loads and imported codes.
+  const numKeys = ['mushrooms', 'scrap', 'shinies'];
+  function n(v, def) { v = +v; return Number.isFinite(v) ? v : (def || 0); }
+  function nonneg(v, def) { return Math.max(0, n(v, def)); }
+  function intNonneg(v, def) { return Math.max(0, Math.trunc(n(v, def))); }
+  function str(v, def) { return typeof v === 'string' ? v : (def || ''); }
+  function bool(v) { return v === true; }
+
+  const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+
+  function sanitizeState(m, base) {
+    // Rebuild every sub-object from KNOWN keys only, coercing values. This both
+    // coerces types and drops any extra/attacker-injected keys (e.g. "__proto__").
+    const res = {}; for (const k of numKeys) res[k] = nonneg(m.resources && m.resources[k]); m.resources = res;
+    m.totals = { shiniesTotal: nonneg(m.totals && m.totals.shiniesTotal) };
+    // population & job assignments (rendered raw → must be plain integers)
+    m.population = Math.max(1, intNonneg(m.population, 1));
+    const jobs = {}; for (const k of ['forage', 'dig', 'raid']) jobs[k] = intNonneg(m.jobs && m.jobs[k]); m.jobs = jobs;
+    // buildings: only known ids, integer levels (rendered raw as ×level)
+    const blds = {}; for (const id in base.buildings) blds[id] = intNonneg(m.buildings && m.buildings[id]); m.buildings = blds;
+    // hidden stats
+    const stats = {}; for (const k of ['greed', 'cruelty', 'openness', 'wanderlust']) stats[k] = nonneg(m.stats && m.stats[k]); m.stats = stats;
+    // progress / counters
+    m.settle = nonneg(m.settle);
+    m.raidCount = intNonneg(m.raidCount);
+    m.tradeCount = intNonneg(m.tradeCount);
+    m.breedProgress = nonneg(m.breedProgress);
+    m.chapter = Math.min(GG.CHAPTERS.length, intNonneg(m.chapter));
+    m.silliness = Math.min(1, nonneg(m.silliness, 0.3));
+    m.buyAmt = m.buyAmt === 'max' ? 'max' : Math.max(1, intNonneg(m.buyAmt, 1));
+    m.startedAt = n(m.startedAt, Date.now());
+    m.lastSeen = n(m.lastSeen, Date.now());
+    m.version = intNonneg(m.version, 1);
+    // unlock flags → strict booleans (known keys only)
+    const unl = {}; for (const k in base.unlocks) unl[k] = bool(m.unlocks && m.unlocks[k]); m.unlocks = unl;
+    // achievements → only known ids, boolean-true
+    const ach = {};
+    for (const a of (GG.ACHIEVEMENTS || [])) if (m.achievements && m.achievements[a.id]) ach[a.id] = true;
+    m.achievements = ach;
+    // narrative text (escaped on render, but coerce + bound length anyway)
+    m.name = str(m.name, base.name);
+    m.legendIntro = str(m.legendIntro, base.legendIntro);
+    m.log = Array.isArray(m.log) ? m.log.filter((x) => typeof x === 'string').slice(0, 4) : [];
+    m.chronicle = Array.isArray(m.chronicle)
+      ? m.chronicle.filter((c) => c && typeof c.msg === 'string')
+          .map((c) => ({ t: n(c.t, Date.now()), msg: c.msg })).slice(-200)
+      : [];
+    // ending: only a KNOWN, own-property ending id (rejects "__proto__" etc.)
+    const eid = (m.ending && typeof m.ending === 'object') ? m.ending.id : null;
+    if (typeof eid === 'string' && has(GG.ENDINGS, eid)) {
+      m.ending = {
+        id: eid,
+        name: str(m.ending.name, GG.ENDINGS[eid].name),
+        text: Array.isArray(m.ending.text) ? m.ending.text.filter((x) => typeof x === 'string') : [],
+      };
+    } else {
+      m.ending = null;
+    }
+    // transient interactive objects are validated/cleared by their callers
+    m.pendingChoice = (m.pendingChoice && typeof m.pendingChoice === 'object') ? m.pendingChoice : null;
+    m.raid = Object.assign({ active: false, returnsAt: 0, target: null }, m.raid);
+    m.raid.active = bool(m.raid.active);
+    m.raid.returnsAt = n(m.raid.returnsAt);
+    return m;
   }
 })();

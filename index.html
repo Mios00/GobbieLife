@@ -3,6 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Defense-in-depth: a static, self-contained game. Allow only same-origin
+       scripts/styles, no inline scripts or event handlers (blocks injected
+       onerror=/onclick= style XSS), and no outbound connections. 'unsafe-inline'
+       is needed for style-src only because the UI sets inline width styles on
+       progress bars; script-src stays strict. -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" />
+  <meta name="referrer" content="no-referrer" />
   <meta name="description" content="GOBLIN — a lightweight idle game about a goblin who grows, builds, and gets up to shenanigans." />
   <title>GOBLIN — a tale of growth &amp; shenanigans</title>
   <link rel="stylesheet" href="css/style.css" />
