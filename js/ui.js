@@ -29,7 +29,7 @@
     renderGoblins(s);
     renderActions(s);
     renderBuild(s);
-    renderDestiny(s);
+    renderOracle(s);
     renderAnnals(s);
     renderChronicle(s);
     renderModal(s);
@@ -110,8 +110,17 @@
       </div>`;
     };
 
+    // settlement vista — "what does the place look like now?"
+    const v = GG.Story.settlement(Game.settlementTier(s));
+    const vista = `<div class="vista">
+      <pre class="vart">${esc(v.art)}</pre>
+      <div class="vname">${esc(v.name)}</div>
+      <div class="vdesc">${esc(v.desc)}</div>
+    </div>`;
+
     $('goblins').innerHTML =
-      `<h2>Tribe <span class="cap">${s.population}/${cap}</span></h2>
+      `${vista}
+       <h2>Tribe <span class="cap">${s.population}/${cap}</span></h2>
        <div class="idle">Idle goblins: <b>${idle}</b></div>
        ${jobRow('forage')}${jobRow('dig')}${jobRow('raid')}
        ${breed}`;
@@ -203,24 +212,17 @@
     return map[unlock] || 'right building';
   }
 
-  function renderDestiny(s) {
+  // The Totem no longer shows a numeric destiny meter — it speaks the Oracle:
+  // a riddle that hints where you're heading without ever naming it.
+  function renderOracle(s) {
     const el = $('destiny');
     if (!s.unlocks.destiny) { el.innerHTML = ''; el.style.display = 'none'; return; }
     el.style.display = '';
-    const d = Game.destiny(s);
-    const total = Object.values(d.scores).reduce((a, b) => a + b, 0) || 1;
-    const labels = { purist: 'Pure Warren', multirace: 'Motley Kingdom', chaos: 'Endless Road', villain: 'The Loom' };
-    let bars = '';
-    for (const id in d.scores) {
-      const pct = Math.round((d.scores[id] / total) * 100);
-      bars += `<div class="drow">
-        <span class="dname ${id === d.lead ? 'lead' : ''}">${labels[id]}</span>
-        <div class="bar dbar"><span style="width:${pct}%"></span></div>
-        <span class="dpct">${pct}%</span>
-      </div>`;
-    }
-    el.innerHTML = `<h2>Destiny <span class="cap">whispered by the Totem</span></h2>${bars}
-      <div class="hint">Your deeds tilt the tale. No one chose this but you — and you didn't quite mean to.</div>`;
+    const body = s.lastOracle
+      ? `<div class="oracle">${esc(s.lastOracle)}</div>`
+      : `<div class="hint">The Totem is listening. It has not yet decided what to say of you.</div>`;
+    el.innerHTML = `<h2>The Oracle <span class="cap">the Totem's riddle</span></h2>${body}
+      <div class="hint">It will never name your destiny outright. Listen — and decide what you hear.</div>`;
   }
 
   function renderAnnals(s) {

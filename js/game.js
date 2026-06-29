@@ -52,6 +52,7 @@
 
       chronicle: [],
       chronCount: 0,       // monotonic entry counter (UI dedup key)
+      lastOracle: null,    // most recent Oracle riddle (shown in place of a destiny meter)
       ending: null,        // set when game is finished
       log: [],             // short transient action feedback
     };
@@ -158,6 +159,16 @@
   // each Lookout Warren multiplies the odds of bad outcomes / events down.
   Game.riskFactor = function (s) {
     return Math.pow(0.65, s.buildings.lookout || 0);
+  };
+
+  // what the place LOOKS like now: 0 (a hole) … 6 (a city), derived from how
+  // rooted you are, how built-up, and how big the tribe has grown.
+  Game.settlementTier = function (s) {
+    const score = s.settle + Game.distinctBuildings(s) + Math.floor((s.peakPop || s.population || 1) / 3);
+    const cuts = [2, 5, 8, 12, 16, 21]; // boundaries between the 7 tiers
+    let t = 0;
+    for (const c of cuts) if (score >= c) t++;
+    return t;
   };
 
   // ---- verbs ----------------------------------------------------
@@ -396,6 +407,19 @@
     }
   }
 
+  // the Totem speaks the Oracle (only once the Totem stands) — a riddling hint
+  // toward whatever destiny you've been quietly feeding, never the number itself.
+  let oracleAccum = 0;
+  function tickOracle(s, dt) {
+    if (!s.unlocks.destiny) return;
+    oracleAccum += dt;
+    if (oracleAccum < (C.oracleEverySec || 100)) return;
+    oracleAccum = 0;
+    const riddle = GG.Story.oracle(s);
+    s.lastOracle = riddle;
+    chronicle(s, riddle);
+  }
+
   // ---- random events -------------------------------------------
   let eventAccum = 0, eventThreshold = 0;
   function rollEventThreshold() {
@@ -500,6 +524,7 @@
     }
 
     tickStory(s, dtSec);
+    tickOracle(s, dtSec);
     tickEvents(s, dtSec);
     if (s.population > (s.peakPop || 0)) s.peakPop = s.population; // for gradual building reveals
     checkChapters(s);
@@ -629,6 +654,7 @@
     // narrative text (escaped on render, but coerce + bound length anyway)
     m.name = str(m.name, base.name);
     m.legendIntro = str(m.legendIntro, base.legendIntro);
+    m.lastOracle = (m.lastOracle == null) ? null : str(m.lastOracle, '');
     m.log = Array.isArray(m.log) ? m.log.filter((x) => typeof x === 'string').slice(0, 4) : [];
     m.chronicle = Array.isArray(m.chronicle)
       ? m.chronicle.filter((c) => c && typeof c.msg === 'string')
