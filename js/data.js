@@ -39,6 +39,43 @@
     raid:   { name: 'Raiders',  verb: 'raid',   perGoblin: 0,    out: null }, // used by war tent
   };
 
+  // --- Other races (join your tribe, become a productive population) ---
+  // Goblins are bred and assigned to jobs; other races arrive via openness-y
+  // events/raids and quietly contribute their specialty each second. They also
+  // eat (upkeep on the WHOLE settlement), so a mixed kingdom must feed itself.
+  GG.RACES = {
+    dwarf: { name: 'Dwarves', one: 'dwarf',  sym: '⛏', bonus: { scrap: 0.25 },
+             blurb: 'Tireless smiths and miners. Scrap flows where they work.' },
+    human: { name: 'Humans',  one: 'human',  sym: '⌂', bonus: { mushrooms: 0.28 },
+             blurb: 'Farmers and bakers. They keep the whole tribe fed.' },
+    elf:   { name: 'Elves',   one: 'elf',    sym: '❧', bonus: { shinies: 0.06 },
+             blurb: 'Lore-keepers and traders. Their quiet presence enriches the warren.' },
+  };
+
+  // --- Notable goblins (a Dwarf-Fortress-ish roster of named individuals) ---
+  // A handful of goblins stand out from the crowd, each with a personality.
+  // They age on a randomised natural lifespan, do trait-flavoured things that
+  // touch the Chronicle (and sometimes the hoard), and eventually die — in
+  // battle, or old and full of years — while new ones rise to take their place.
+  GG.NOTABLE = {
+    names: ['Murt', 'Skrik', 'Pim', 'Hobnail', 'Veen', 'Klud', 'Bog', 'Wretcha',
+            'Snek', 'Grad', 'Ugzul', 'Nix', 'Drub', 'Fenn', 'Gort', 'Hazia',
+            'Brak', 'Lumpkin', 'Sproggit', 'Yarl', 'Mott', 'Gell'],
+    roles: ['the Forager', 'the Digger', 'the Raider', 'the Tinker', 'the Cook',
+            'the Shaman', 'the Lookout', 'the Brewer', 'the Storyteller'],
+    traits: [
+      { id: 'greedy',   adj: 'Greedy',   act: 'pockets a few shinies "for safekeeping."',                 gain: { shinies: [1, 4] },  lean: { greed: 1 } },
+      { id: 'brave',    adj: 'Brave',    act: 'picks a fight with something twice their size — and wins.', lean: { cruelty: 1 } },
+      { id: 'kind',     adj: 'Kind',     act: 'shares their dinner with a stray, who decides to stay.',    lean: { openness: 1 } },
+      { id: 'restless', adj: 'Restless', act: 'vanishes down the road for a day and returns full of stories.', lean: { wanderlust: 1 } },
+      { id: 'clumsy',   adj: 'Clumsy',   act: 'knocks the scrap pile clean over. Again.',                  gain: { scrap: [-4, -1] } },
+      { id: 'clever',   adj: 'Clever',   act: 'invents a slightly better way to do a tiresome thing.',     gain: { mushrooms: [2, 6] } },
+      { id: 'grumpy',   adj: 'Grumpy',   act: 'starts a feud over nothing. It mostly resolves by morning.' },
+      { id: 'lucky',    adj: 'Lucky',    act: 'finds something shiny in the mud, as they somehow always do.', gain: { shinies: [2, 6] } },
+      { id: 'devout',   adj: 'Devout',   act: 'spends the night muttering to the Totem. It mutters back.',  lean: {} },
+    ],
+  };
+
   // --- Buildings -------------------------------------------------
   // cost(level) returns the cost to buy the NEXT level (current level passed in).
   // effects are interpreted in game.js.
@@ -209,8 +246,8 @@
           log: 'You hauled out armfuls of glittering, humming junk. A few goblins now glow faintly. Worth it.' },
         { label: 'Take only what you understand', loot: { shinies: [7, 12] }, lean: { wanderlust: 2 },
           log: 'You left the dangerous wonders sleeping. The road out felt longer, and you liked that.' },
-        { label: 'Bring a scholar back to study it', loot: { shinies: [3, 6] }, lean: { openness: 3, wanderlust: 1 },
-          log: 'You returned with a wide-eyed elf scholar who calls your warren "a remarkable culture." Goblins are unsure how to feel.' },
+        { label: 'Bring a scholar back to study it', loot: { shinies: [3, 6] }, lean: { openness: 3, wanderlust: 1 }, race: { elf: 1 },
+          log: 'You returned with a wide-eyed elf scholar who calls your warren "a remarkable culture." Goblins are unsure how to feel. The elf, at least, has decided to stay.' },
       ],
       silly: {
         title: 'A Wizard\'s Ruin (Now A Pop-Up Shop)',
@@ -234,8 +271,8 @@
           log: 'You hauled off every bolt and ingot before the first dwarf reached the surface. They are still cursing your name in three dialects.' },
         { label: 'Right the cart and roll it home whole', loot: { scrap: [12, 20], shinies: [10, 16] }, risk: 0.2, lean: { greed: 3 },
           log: 'Getting the whole cart back took muscle and a few crushed toes, but a dwarven cart is worth a heap of bent scrap.' },
-        { label: 'Wait, and return it for a reward', loot: { shinies: [9, 15] }, lean: { openness: 3 },
-          log: 'You sat on the cart and waved when the dwarves arrived. Baffled, grateful, suspicious — they paid you anyway, and now you have a dwarf who owes you a favour.' },
+        { label: 'Wait, and return it for a reward', loot: { shinies: [9, 15] }, lean: { openness: 3 }, race: { dwarf: 1 },
+          log: 'You sat on the cart and waved when the dwarves arrived. Baffled, grateful, suspicious — they paid you anyway. One dwarf, impressed by the sheer nerve of it, stays on to tinker in your deeps.' },
       ],
       silly: {
         title: 'A Runaway Mine Cart (No Brakes, Big Mood)',
@@ -245,8 +282,8 @@
             log: 'You stripped the cart before the first dwarf surfaced. They are cursing your name in three dialects and one interpretive dance.' },
           { label: 'Launch a competing cart startup', loot: { scrap: [12, 20], shinies: [10, 16] }, risk: 0.2, lean: { greed: 3 },
             log: 'You rolled the whole cart home and founded "Cart, But Goblin." Disruptive. Deeply litigious. Surprisingly profitable.' },
-          { label: 'Return it for the reward and the clout', loot: { shinies: [9, 15] }, lean: { openness: 3 },
-            log: 'You returned the cart, waved, and accepted both a reward and a baffled dwarven friendship. He owes you a favour and, he insists, a beer.' },
+          { label: 'Return it for the reward and the clout', loot: { shinies: [9, 15] }, lean: { openness: 3 }, race: { dwarf: 1 },
+            log: 'You returned the cart, waved, and accepted a reward, a baffled dwarven friendship, and one dwarf who moves into your deeps to "keep an eye on the structural integrity."' },
         ],
       },
     },
@@ -356,8 +393,8 @@
       title: 'Strangers at the Treeline',
       text: 'A ragged band of the tall folk — burned out of their homes by something worse than you — huddle at the edge of your wood, asking for shelter.',
       options: [
-        { label: 'Take them in', cost: { mushrooms: 18 }, lean: { openness: 3 }, give: { scrap: 8 },
-          log: 'You let the refugees stay. They are clumsy in tunnels and terrified of the dark, but they can read, and cook, and they are loyal now in the way only the rescued are.' },
+        { label: 'Take them in', cost: { mushrooms: 18 }, lean: { openness: 3 }, race: { human: 2 },
+          log: 'You let the refugees stay. They are clumsy in tunnels and terrified of the dark, but they can read, and cook, and they are loyal now in the way only the rescued are. Two human families join the warren.' },
         { label: 'Turn them away', lean: { cruelty: 1, greed: 1 },
           log: 'You sent the strangers back into the cold. The warren is for goblins. The wind that night sounded, you thought, a little like judgement.' },
         { label: 'Rob them of what little they have', give: { shinies: 5, scrap: 6 }, lean: { cruelty: 3, greed: 2 },
@@ -367,8 +404,8 @@
         title: 'Strangers At The Treeline (With A Pitch Deck)',
         text: 'A ragged band of the tall folk, burned out by something worse than you, huddle at your wood\'s edge. Their leader has prepared a short slide presentation on why you should let them in.',
         options: [
-          { label: 'Approve the pitch', cost: { mushrooms: 18 }, lean: { openness: 3 }, give: { scrap: 8 },
-            log: 'You let them stay. They are terrible in tunnels and terrified of the dark, but they can read, cook, and make slides. Loyal in the way only the rescued ever are.' },
+          { label: 'Approve the pitch', cost: { mushrooms: 18 }, lean: { openness: 3 }, race: { human: 2 },
+            log: 'You let them stay. They are terrible in tunnels and terrified of the dark, but they can read, cook, and make slides. Two human families onboard. Loyal in the way only the rescued ever are.' },
           { label: 'Ghost them professionally', lean: { cruelty: 1, greed: 1 },
             log: 'You said "let\'s circle back" and never circled back. The wind that night sounded a little like an unanswered follow-up email.' },
           { label: 'Acquire their startup for parts', give: { shinies: 5, scrap: 6 }, lean: { cruelty: 3, greed: 2 },
@@ -469,6 +506,37 @@
             log: 'You looked into the Totem\'s mirror and grinned. Whatever you are becoming, you grabbed it with both hands and a rudimentary marketing plan.' },
           { label: 'Recoil — this is NOT the brand', lean: {}, _soften: true,
             log: 'You looked away from the mirror. A tale can still pivot, you tell yourself. The road has forks yet, and one of them surely has better optics.' },
+        ],
+      },
+    },
+
+    {
+      id: 'wanderers', weight: 3,
+      when: (s) => s.chapter >= 2,
+      title: 'Wanderers at the Gate',
+      text: 'A small, travel-worn band of the tall folk stops at your gate. They\'ve heard — to their own surprise — that this strange green place takes people in. They\'d like to stay, and work.',
+      options: [
+        { label: 'Welcome a dwarf smith', race: { dwarf: 1 }, lean: { openness: 2 },
+          log: 'A broad, soot-stained dwarf sets up a forge in your deeps and starts turning your scrap into something worth having. The goblins watch, fascinated.' },
+        { label: 'Welcome a human family', race: { human: 1 }, lean: { openness: 2 },
+          log: 'A human family moves into a hollowed burrow, plants a garden where no garden should grow, and somehow the whole warren starts eating better.' },
+        { label: 'Welcome an elf wanderer', race: { elf: 1 }, lean: { openness: 2 },
+          log: 'A quiet elf with too many books takes a corner of the warren and fills it with maps and ledgers. Trade, somehow, gets easier with them around.' },
+        { label: 'Turn them away — goblins only', lean: { cruelty: 1, greed: 1 },
+          log: 'You sent the wanderers back to the cold road. The warren stays green, top to bottom. The Totem, you notice, is very quiet about it.' },
+      ],
+      silly: {
+        title: 'Applicants',
+        text: 'A travel-worn band of tall folk stops at the gate clutching résumés. Word has spread that the weird green startup is "hiring and surprisingly chill about species."',
+        options: [
+          { label: 'Hire a dwarf (scrap dept.)', race: { dwarf: 1 }, lean: { openness: 2 },
+            log: 'A dwarf sets up a forge, immediately unionizes themselves, and starts turning your junk into actual value. Headcount: +1, vibes: +forge.' },
+          { label: 'Hire a human (catering)', race: { human: 1 }, lean: { openness: 2 },
+            log: 'A human plants a garden in a cave, which should not work, and now the warren eats like it has standards. Standards! In a hole!' },
+          { label: 'Hire an elf (logistics)', race: { elf: 1 }, lean: { openness: 2 },
+            log: 'An elf with concerning amounts of books takes over logistics. Spreadsheets appear. Trade improves. Nobody is allowed to touch the spreadsheets.' },
+          { label: 'Reject all applicants (goblins only)', lean: { cruelty: 1, greed: 1 },
+            log: 'You ghosted the entire applicant pool. The warren stays 100% goblin. The Totem leaves you on read about it.' },
         ],
       },
     },

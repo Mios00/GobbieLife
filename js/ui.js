@@ -27,6 +27,7 @@
     renderHeader(s);
     renderResources(s);
     renderGoblins(s);
+    renderNotables(s);
     renderActions(s);
     renderBuild(s);
     renderOracle(s);
@@ -110,12 +111,18 @@
       </div>`;
     };
 
-    // settlement vista — "what does the place look like now?"
+    // settlement vista — "what does the place look like now?" + who lives here
     const v = GG.Story.settlement(Game.settlementTier(s));
+    const comp = [`${s.population} goblin${s.population === 1 ? '' : 's'}`];
+    for (const rc in (s.races || {})) {
+      const n = s.races[rc]; const d = GG.RACES[rc];
+      if (n > 0 && d) comp.push(`${n} ${d.sym} ${n === 1 ? d.one : d.name.toLowerCase()}`);
+    }
     const vista = `<div class="vista">
       <pre class="vart">${esc(v.art)}</pre>
       <div class="vname">${esc(v.name)}</div>
       <div class="vdesc">${esc(v.desc)}</div>
+      <div class="vcomp">${esc(comp.join('   ·   '))}</div>
     </div>`;
 
     $('goblins').innerHTML =
@@ -124,6 +131,28 @@
        <div class="idle">Idle goblins: <b>${idle}</b></div>
        ${jobRow('forage')}${jobRow('dig')}${jobRow('raid')}
        ${breed}`;
+  }
+
+  function renderNotables(s) {
+    const el = $('notables');
+    if (!el) return;
+    const list = s.notables || [];
+    if (!list.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+    el.style.display = '';
+    const ageWord = (nb) => {
+      const r = nb.age / Math.max(1, nb.life);
+      return r < 0.25 ? 'Young' : r < 0.6 ? 'Seasoned' : r < 0.85 ? 'Old' : 'Ancient';
+    };
+    const adjOf = (id) => {
+      const t = (GG.NOTABLE.traits || []).find((x) => x.id === id);
+      return t ? t.adj : '';
+    };
+    const rows = list.map((nb) => `<div class="nrow">
+        <span class="nmark">☗</span>
+        <span class="ntext"><b>${esc(nb.name)} ${esc(nb.role)}</b><span class="ndesc">${esc(adjOf(nb.trait))} · ${ageWord(nb)}</span></span>
+      </div>`).join('');
+    el.innerHTML = `<h2>Notable Goblins <span class="cap">${list.length}/${Game.notableCap(s)}</span></h2>${rows}
+      <div class="hint">They live, squabble, age, and pass on. Watch the Chronicle for their deeds.</div>`;
   }
 
   function renderActions(s) {

@@ -27,8 +27,11 @@
       resources: { mushrooms: 0, scrap: 0, shinies: 0 },
       totals: { shiniesTotal: 0 }, // lifetime, for milestones
 
-      population: 1,
-      peakPop: 1,           // highest population ever reached (gates building reveals)
+      population: 1,        // goblins (bred, job-assignable)
+      peakPop: 1,           // highest TOTAL population ever (gates building reveals)
+      races: { dwarf: 0, human: 0, elf: 0 }, // other races who've joined the tribe
+      notables: [],         // named individual goblins (the roster)
+      notableSeq: 0,        // id counter for notables
       jobs: { forage: 0, dig: 0, raid: 0 },
 
       buildings: {
@@ -69,6 +72,19 @@
     return s.population - s.jobs.forage - s.jobs.dig - s.jobs.raid;
   };
 
+  // everyone who lives here: goblins + every other race that has joined
+  Game.totalPop = function (s) {
+    let t = s.population;
+    for (const rc in (s.races || {})) t += s.races[rc] || 0;
+    return t;
+  };
+
+  // how many goblins can stand out as "notables" — grows with the whole tribe,
+  // but never exceeds the goblin count it's drawn from (capped at 8).
+  Game.notableCap = function (s) {
+    return Math.min(8, s.population, 2 + Math.floor(Game.totalPop(s) / 4));
+  };
+
   Game.distinctBuildings = function (s) {
     return Object.values(s.buildings).filter((v) => v > 0).length;
   };
@@ -94,8 +110,14 @@
     // assigned goblins
     r.mushrooms += s.jobs.forage * GG.JOBS.forage.perGoblin;
     r.scrap += s.jobs.dig * GG.JOBS.dig.perGoblin;
-    // upkeep
-    r.mushrooms -= s.population * C.upkeepPerGoblin;
+    // other races each contribute their specialty, passively
+    for (const rc in (s.races || {})) {
+      const def = GG.RACES[rc];
+      const n = s.races[rc] || 0;
+      if (def && n > 0) for (const res in def.bonus) r[res] += def.bonus[res] * n;
+    }
+    // upkeep — the WHOLE settlement eats, goblins and guests alike
+    r.mushrooms -= Game.totalPop(s) * C.upkeepPerGoblin;
     return r;
   };
 
@@ -303,6 +325,12 @@
     s.resources[res] = Math.max(0, s.resources[res] + amt);
     if (res === 'shinies' && amt > 0) s.totals.shiniesTotal += amt;
   }
+  function gainRace(s, rc, n) {
+    if (!GG.RACES[rc]) return;
+    if (!s.races) s.races = {};
+    s.races[rc] = Math.max(0, (s.races[rc] || 0) + n);
+  }
+  const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
   function loseGoblin(s) {
     if (s.population <= 1) return false;
     s.population -= 1;
@@ -310,6 +338,13 @@
     if (s.jobs.raid > 0) s.jobs.raid -= 1;
     else if (s.jobs.dig > 0) s.jobs.dig -= 1;
     else if (s.jobs.forage > 0) s.jobs.forage -= 1;
+    // sometimes the one who fell was a notable goblin (already counted above)
+    if (s.notables && s.notables.length && Math.random() < 0.35) {
+      const nb = pickOne(s.notables);
+      s.notables = s.notables.filter((x) => x.id !== nb.id);
+      const tr = GG.NOTABLE.traits.find((t) => t.id === nb.trait) || GG.NOTABLE.traits[0];
+      chronicle(s, `${tr.adj} ${nb.name} ${nb.role} falls in the fighting. They will be a story told by the fire now — and a good one.`);
+    }
     return true;
   }
   function dominantStat(s) {
@@ -330,6 +365,7 @@
 
     if (opt.cost) for (const res in opt.cost) gain(s, res, -opt.cost[res]);
     if (opt.give) for (const res in opt.give) gain(s, res, opt.give[res]);
+    if (opt.race) for (const rc in opt.race) gainRace(s, rc, opt.race[rc]);
     if (opt.loot) {
       for (const res in opt.loot) {
         const [lo, hi] = opt.loot[res];
@@ -420,6 +456,53 @@
     chronicle(s, riddle);
   }
 
+  // ---- notable goblins (named individuals who live, act, age, and die) ----
+  const traitOf = (id) => GG.NOTABLE.traits.find((t) => t.id === id) || GG.NOTABLE.traits[0];
+  function rollLife() { return 900 + Math.random() * 2100; } // 15–50 min of ACTIVE play
+  function makeNotable(s) {
+    s.notableSeq = (s.notableSeq || 0) + 1;
+    return {
+      id: s.notableSeq, name: pickOne(GG.NOTABLE.names), role: pickOne(GG.NOTABLE.roles),
+      trait: pickOne(GG.NOTABLE.traits).id, age: 0, life: rollLife(),
+    };
+  }
+  function notableActs(s, nb) {
+    const tr = traitOf(nb.trait);
+    chronicle(s, `${tr.adj} ${nb.name} ${nb.role} ${tr.act}`);
+    if (tr.gain) for (const res in tr.gain) {
+      const [lo, hi] = tr.gain[res];
+      gain(s, res, Math.round(lo + Math.random() * (hi - lo)));
+    }
+    if (tr.lean) for (const k in tr.lean) s.stats[k] += tr.lean[k];
+  }
+  function killNotableOldAge(s, nb) {
+    const tr = traitOf(nb.trait);
+    s.notables = s.notables.filter((x) => x.id !== nb.id);
+    if (s.population > 1) s.population -= 1;           // an old goblin truly passes
+    s.stats.openness += 0.5;                            // wisdom handed down softens the warren
+    chronicle(s, `${nb.name} ${nb.role}, once ${tr.adj.toLowerCase()}, dies old and full of years and stolen soup. The young ones repeat their stories by the fire — getting half of it wrong, which is how stories survive.`);
+  }
+
+  let notableAccum = 0;
+  function tickNotables(s, dt) {
+    if (!Array.isArray(s.notables)) s.notables = [];
+    for (const nb of s.notables) nb.age += dt;          // age continuously, only while playing
+    notableAccum += dt;
+    if (notableAccum < 22) return;                      // process the roster periodically
+    notableAccum = 0;
+    // 1) the old pass on
+    for (const nb of s.notables.slice()) if (nb.age >= nb.life) killNotableOldAge(s, nb);
+    // 2) a new goblin rises to fill an empty seat (one per cycle)
+    if (s.notables.length < Game.notableCap(s) && s.population >= 1) {
+      const nb = makeNotable(s);
+      s.notables.push(nb);
+      const tr = traitOf(nb.trait);
+      chronicle(s, `A goblin named ${nb.name} starts to stand out from the crowd — ${tr.adj.toLowerCase()}, taking up the part of ${nb.role.replace('the ', '')}. The warren has a new notable.`);
+    }
+    // 3) someone does something in-character
+    if (s.notables.length && Math.random() < 0.55) notableActs(s, pickOne(s.notables));
+  }
+
   // ---- random events -------------------------------------------
   let eventAccum = 0, eventThreshold = 0;
   function rollEventThreshold() {
@@ -449,6 +532,7 @@
     const v = pickVariant(ev, s);            // silly variant may swap the text
     const fx = v.effect || ev.effect || {};  // ...and falls back to base effect
     if (fx.give) for (const res in fx.give) gain(s, res, fx.give[res]);
+    if (fx.race) for (const rc in fx.race) gainRace(s, rc, fx.race[rc]);
     if (fx.take) for (const res in fx.take) gain(s, res, -Math.floor(s.resources[res] * fx.take[res]));
     if (fx.pop) { if (fx.pop > 0) s.population += fx.pop; else for (let i = 0; i < -fx.pop; i++) loseGoblin(s); }
     if (fx.lean) for (const k in fx.lean) s.stats[k] += fx.lean[k];
@@ -525,8 +609,10 @@
 
     tickStory(s, dtSec);
     tickOracle(s, dtSec);
+    tickNotables(s, dtSec);
     tickEvents(s, dtSec);
-    if (s.population > (s.peakPop || 0)) s.peakPop = s.population; // for gradual building reveals
+    const tp = Game.totalPop(s);
+    if (tp > (s.peakPop || 0)) s.peakPop = tp; // peak whole-tribe size gates building reveals
     checkChapters(s);
     checkAchievements(s);
     s.lastSeen = Date.now();
@@ -626,9 +712,25 @@
     // coerces types and drops any extra/attacker-injected keys (e.g. "__proto__").
     const res = {}; for (const k of numKeys) res[k] = nonneg(m.resources && m.resources[k]); m.resources = res;
     m.totals = { shiniesTotal: nonneg(m.totals && m.totals.shiniesTotal) };
+    // other races (known keys only, integer counts)
+    const races = {}; for (const rc in GG.RACES) races[rc] = intNonneg(m.races && m.races[rc]); m.races = races;
     // population & job assignments (rendered raw → must be plain integers)
     m.population = Math.max(1, intNonneg(m.population, 1));
-    m.peakPop = Math.max(m.population, intNonneg(m.peakPop, m.population));
+    const total = m.population + Object.values(races).reduce((a, b) => a + b, 0);
+    m.peakPop = Math.max(intNonneg(m.peakPop, 0), total); // never behind the current tribe
+    // notable roster — validated, bounded, fields coerced (rendered → must be safe)
+    m.notableSeq = intNonneg(m.notableSeq, 0);
+    const validTrait = (id) => GG.NOTABLE.traits.some((t) => t.id === id);
+    m.notables = Array.isArray(m.notables)
+      ? m.notables.filter((x) => x && typeof x === 'object').slice(0, 8).map((x, i) => ({
+          id: intNonneg(x.id, i + 1),
+          name: str(x.name, 'A Goblin'),
+          role: str(x.role, 'the Forager'),
+          trait: validTrait(x.trait) ? x.trait : GG.NOTABLE.traits[0].id,
+          age: nonneg(x.age),
+          life: Math.max(60, nonneg(x.life, 1200)),
+        }))
+      : [];
     const jobs = {}; for (const k of ['forage', 'dig', 'raid']) jobs[k] = intNonneg(m.jobs && m.jobs[k]); m.jobs = jobs;
     // buildings: only known ids, integer levels (rendered raw as ×level)
     const blds = {}; for (const id in base.buildings) blds[id] = intNonneg(m.buildings && m.buildings[id]); m.buildings = blds;
