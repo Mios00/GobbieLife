@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="GOBLIN — a lightweight idle game about a goblin who grows, builds, and gets up to shenanigans." />
+  <title>GOBLIN — a tale of growth &amp; shenanigans</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header id="hdr"></header>
+
+    <main id="grid">
+      <section class="col">
+        <div class="panel" id="resources"></div>
+        <div class="panel" id="goblins"></div>
+        <div class="panel" id="actions"></div>
+      </section>
+
+      <section class="col">
+        <div class="panel" id="build"></div>
+        <div class="panel" id="destiny"></div>
+      </section>
+
+      <section class="col wide">
+        <div class="panel tall" id="chronicle"></div>
+      </section>
+    </main>
+
+    <footer id="foot">
+      <span>autosaves to this browser · text-based idle game</span>
+    </footer>
+  </div>
+
+  <div id="modal"></div>
+
+  <!-- plain scripts (no modules) so it also runs from file:// -->
+  <script src="js/data.js"></script>
+  <script src="js/story.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

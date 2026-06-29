@@ -1,0 +1,129 @@
+/* ============================================================
+ * GOBLIN — minimalist text / ASCII terminal aesthetic
+ * cozy mossy-cave palette, monospace, no images, tiny footprint
+ * ============================================================ */
+:root {
+  --bg: #11140f;
+  --bg2: #181d14;
+  --panel: #1d2418;
+  --ink: #cfe0bd;
+  --dim: #8aa07a;
+  --moss: #7bd36a;
+  --gold: #e7c66b;
+  --blood: #d9694e;
+  --line: #34402b;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: var(--bg); }
+body {
+  color: var(--ink);
+  font-family: "Courier New", ui-monospace, "DejaVu Sans Mono", monospace;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+#app { max-width: 1120px; margin: 0 auto; padding: 14px 16px 40px; }
+
+/* header */
+#hdr { border-bottom: 1px dashed var(--line); padding-bottom: 10px; margin-bottom: 14px; }
+.title { font-size: 26px; letter-spacing: 3px; color: var(--moss); font-weight: bold; }
+.title .sub { font-size: 13px; letter-spacing: 0; color: var(--dim); font-weight: normal; }
+.meta { color: var(--dim); margin-top: 2px; }
+.meta b { color: var(--gold); }
+
+/* layout */
+#grid { display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 14px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+@media (max-width: 880px) { #grid { grid-template-columns: 1fr; } }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+.panel h2 {
+  margin: 0 0 10px; font-size: 13px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--moss); border-bottom: 1px solid var(--line); padding-bottom: 6px;
+}
+.panel h2 .cap { float: right; color: var(--dim); letter-spacing: 0; text-transform: none; font-size: 12px; }
+
+/* resources */
+.rrow { display: grid; grid-template-columns: 18px 1fr auto auto; gap: 8px; align-items: baseline; padding: 3px 0; }
+.rsym { color: var(--gold); }
+.rname { color: var(--dim); }
+.rval { color: var(--ink); font-weight: bold; text-align: right; }
+.rrate { color: var(--moss); font-size: 12px; min-width: 56px; text-align: right; }
+.rrate.neg { color: var(--blood); }
+
+/* goblins / jobs */
+.idle { color: var(--dim); margin-bottom: 8px; }
+.idle b { color: var(--ink); }
+.cap { color: var(--dim); }
+.jrow { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.jcount { width: 22px; text-align: center; color: var(--gold); font-weight: bold; }
+.jname { color: var(--ink); }
+.jout { color: var(--dim); font-size: 12px; margin-left: auto; }
+.bar { height: 7px; background: #0d100a; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin: 8px 0 4px; }
+.bar span { display: block; height: 100%; background: var(--moss); transition: width .25s linear; }
+.hint { color: var(--dim); font-size: 12px; font-style: italic; margin-top: 4px; }
+
+/* buttons */
+button { font-family: inherit; cursor: pointer; }
+.mini { width: 26px; height: 24px; background: var(--bg2); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; }
+.mini:hover { border-color: var(--moss); color: var(--moss); }
+.act {
+  display: block; width: 100%; text-align: left; margin: 6px 0; padding: 9px 11px;
+  background: var(--bg2); color: var(--ink); border: 1px solid var(--line); border-radius: 5px;
+}
+.act:hover:not(:disabled) { border-color: var(--moss); color: var(--moss); }
+.act:disabled { opacity: .5; cursor: not-allowed; }
+.act.danger:hover { border-color: var(--blood); color: var(--blood); }
+.act.busy { color: var(--gold); border-color: var(--line); }
+.log { margin-top: 8px; color: var(--dim); font-size: 12px; min-height: 16px; }
+.log div { opacity: .9; }
+
+.trade { margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; }
+.thint { color: var(--dim); font-size: 12px; margin-bottom: 4px; }
+.mini2 { background: var(--bg2); color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 5px 8px; margin: 2px 4px 2px 0; font-size: 12px; }
+.mini2:hover { border-color: var(--gold); color: var(--gold); }
+
+/* build */
+.bitem { margin-bottom: 10px; }
+.build { display: flex; justify-content: space-between; width: 100%; gap: 10px; padding: 8px 10px;
+  background: var(--bg2); color: var(--ink); border: 1px solid var(--line); border-radius: 5px; text-align: left; }
+.build:hover:not(:disabled) { border-color: var(--moss); }
+.build:disabled { opacity: .55; cursor: not-allowed; }
+.bname { color: var(--ink); }
+.lvl { color: var(--dim); font-size: 12px; }
+.bcost { color: var(--gold); font-size: 13px; white-space: nowrap; }
+.bcost .short { color: var(--blood); }
+.bblurb { color: var(--dim); font-size: 12px; font-style: italic; margin: 2px 2px 0; }
+
+/* destiny */
+.drow { display: grid; grid-template-columns: 110px 1fr 40px; gap: 8px; align-items: center; padding: 3px 0; }
+.dname { color: var(--dim); font-size: 13px; }
+.dname.lead { color: var(--gold); font-weight: bold; }
+.dbar span { background: var(--gold); }
+.dpct { color: var(--dim); font-size: 12px; text-align: right; }
+
+/* chronicle */
+.panel.tall { max-height: 78vh; overflow-y: auto; }
+#chronicle { scrollbar-width: thin; }
+.cintro { color: var(--ink); border-left: 2px solid var(--moss); padding: 6px 0 6px 12px; margin-bottom: 12px; font-style: italic; }
+.centry { color: var(--dim); padding: 5px 0; border-bottom: 1px dotted #232b1c; font-size: 14px; }
+.centry.grand { color: var(--gold); text-align: center; font-style: italic; border-bottom: none; padding: 10px 0; }
+
+/* footer */
+#foot { margin-top: 22px; color: var(--dim); font-size: 11px; text-align: center; opacity: .7; }
+
+/* modal */
+#modal { position: fixed; inset: 0; background: rgba(5,7,4,.82); display: none; align-items: center; justify-content: center; padding: 20px; }
+.card { background: var(--panel); border: 1px solid var(--moss); border-radius: 8px; max-width: 560px; padding: 22px 26px; }
+.card h1 { color: var(--gold); margin: 0 0 14px; font-size: 22px; }
+.card p { color: var(--ink); }
+.choices .act { background: var(--bg2); }
+.card.ending h1 { color: var(--moss); text-align: center; font-size: 26px; }
+.card.ending p { line-height: 1.6; }
+.endstats { color: var(--dim); font-size: 12px; text-align: center; margin: 16px 0; letter-spacing: 1px; }

@@ -1,0 +1,237 @@
+/* ============================================================
+ * ui.js — rendering & input (DOM only, reads from GG.Game)
+ *
+ * Render strategy: rebuild panel innerHTML each UI frame and use
+ * ONE delegated click handler (data-* attributes) so we never
+ * juggle event listeners. Cheap and bulletproof for a text game.
+ * ============================================================ */
+(function () {
+  const GG = (window.GG = window.GG || {});
+  const Game = GG.Game;
+  const UI = (GG.UI = {});
+
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => {
+    n = Math.floor(n);
+    if (n < 1000) return '' + n;
+    if (n < 1e6) return (n / 1000).toFixed(n < 1e4 ? 2 : 1) + 'k';
+    return (n / 1e6).toFixed(2) + 'M';
+  };
+  const sign = (n) => (n >= 0 ? '+' : '') + n.toFixed(1);
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+  // ---------------------------------------------------------------
+  UI.render = function (s) {
+    renderHeader(s);
+    renderResources(s);
+    renderGoblins(s);
+    renderActions(s);
+    renderBuild(s);
+    renderDestiny(s);
+    renderChronicle(s);
+    renderModal(s);
+  };
+
+  function renderHeader(s) {
+    const chap = s.chapter > 0 && GG.CHAPTERS[s.chapter - 1]
+      ? GG.CHAPTERS[s.chapter - 1].title : 'Prologue';
+    $('hdr').innerHTML =
+      `<div class="title">GOBLIN <span class="sub">— a tale of growth &amp; shenanigans</span></div>
+       <div class="meta"><b>${esc(s.name)}</b> &nbsp;·&nbsp; ${esc(chap)}</div>`;
+  }
+
+  function renderResources(s) {
+    const r = Game.rates(s);
+    const rows = ['mushrooms', 'scrap', 'shinies'].map((res) => {
+      const def = GG.RESOURCES[res];
+      const rate = r[res] || 0;
+      const showRate = res !== 'shinies';
+      return `<div class="rrow" title="${esc(def.desc)}">
+        <span class="rsym">${def.sym}</span>
+        <span class="rname">${def.name}</span>
+        <span class="rval">${fmt(s.resources[res])}</span>
+        <span class="rrate ${rate < 0 ? 'neg' : ''}">${showRate ? sign(rate) + '/s' : ''}</span>
+      </div>`;
+    }).join('');
+    $('resources').innerHTML = `<h2>Hoard</h2>${rows}`;
+  }
+
+  function renderGoblins(s) {
+    const cap = Game.goblinCap(s);
+    const idle = Game.idleGoblins(s);
+    let breed = '';
+    if (s.unlocks.breeding) {
+      if (s.population >= cap) breed = `<div class="hint">Warren full. Dig more burrows to grow.</div>`;
+      else if (s.resources.mushrooms < Game.breedCost(s))
+        breed = `<div class="hint">Breeding paused — need ${Game.breedCost(s)} ${GG.RESOURCES.mushrooms.sym} stockpiled.</div>`;
+      else {
+        const pct = Math.floor((s.breedProgress / GG.CONFIG.breedSecPerGoblin) * 100);
+        breed = `<div class="bar"><span style="width:${pct}%"></span></div>
+                 <div class="hint">Breeding next goblin… (costs ${Game.breedCost(s)} ${GG.RESOURCES.mushrooms.sym})</div>`;
+      }
+    } else {
+      breed = `<div class="hint">Build a Burrow to grow your tribe.</div>`;
+    }
+
+    const jobRow = (job) => {
+      const def = GG.JOBS[job];
+      if (job === 'raid' && !s.unlocks.raids) return '';
+      const out = def.out ? `<span class="jout">${def.perGoblin}/ea ${GG.RESOURCES[def.out].sym}</span>` : `<span class="jout">warband</span>`;
+      return `<div class="jrow">
+        <button class="mini" data-act="assign" data-job="${job}" data-d="-1">−</button>
+        <span class="jcount">${s.jobs[job]}</span>
+        <button class="mini" data-act="assign" data-job="${job}" data-d="1">+</button>
+        <span class="jname">${def.name}</span>${out}
+      </div>`;
+    };
+
+    $('goblins').innerHTML =
+      `<h2>Tribe <span class="cap">${s.population}/${cap}</span></h2>
+       <div class="idle">Idle goblins: <b>${idle}</b></div>
+       ${jobRow('forage')}${jobRow('dig')}${jobRow('raid')}
+       ${breed}`;
+  }
+
+  function renderActions(s) {
+    let html = '<h2>Do Things</h2>';
+    html += `<button class="act" data-act="manual" data-kind="forage">Scrabble for mushrooms</button>`;
+    html += `<button class="act" data-act="manual" data-kind="dig">Pry up scrap</button>`;
+
+    if (s.unlocks.raids) {
+      if (s.raid.active) {
+        const left = Math.max(0, Math.ceil((s.raid.returnsAt - Date.now()) / 1000));
+        html += `<button class="act busy" disabled>Warband raiding… (${left}s)</button>`;
+      } else if (s.jobs.raid > 0) {
+        html += `<button class="act danger" data-act="raid">⚔ Send warband (${s.jobs.raid}) on a raid</button>`;
+      } else {
+        html += `<button class="act" disabled>Assign Raiders to raid</button>`;
+      }
+    }
+
+    if (s.unlocks.trade) {
+      html += `<div class="trade">
+        <div class="thint">Trade Post:</div>
+        <button class="mini2" data-act="trade" data-kind="sellScrap">10⚒ → 4◈</button>
+        <button class="mini2" data-act="trade" data-kind="sellMush">10✿ → 3◈</button>
+        <button class="mini2" data-act="trade" data-kind="buyMush">2◈ → 12✿</button>
+      </div>`;
+    }
+    html += `<div class="log">${s.log.map((l) => `<div>${esc(l)}</div>`).join('')}</div>`;
+    $('actions').innerHTML = html;
+  }
+
+  function renderBuild(s) {
+    let html = '<h2>Build</h2>';
+    for (const id in GG.BUILDINGS) {
+      const def = GG.BUILDINGS[id];
+      const lvl = s.buildings[id];
+      const cost = Game.buildingCost(s, id);
+      const locked = def.requiresChapter && s.chapter < def.requiresChapter;
+      const maxed = !cost;
+
+      // hide Great Hall until it's nearly relevant
+      if (id === 'greatHall' && s.chapter < def.requiresChapter - 0) {
+        if (s.chapter < 3) continue;
+      }
+
+      let costStr = maxed ? '<i>complete</i>' :
+        Object.entries(cost).map(([res, n]) =>
+          `<span class="${s.resources[res] < n ? 'short' : ''}">${fmt(n)}${GG.RESOURCES[res].sym}</span>`).join(' ');
+
+      const can = !locked && !maxed && Game.canAfford(s, cost);
+      const lvlBadge = def.max === 1 ? '' : `<span class="lvl">×${lvl}</span>`;
+      const lockMsg = locked ? `<div class="hint">Unlocks in Chapter ${def.requiresChapter}.</div>` : '';
+
+      html += `<div class="bitem ${can ? '' : 'cant'}">
+        <button class="build" data-act="build" data-id="${id}" ${can ? '' : 'disabled'}>
+          <span class="bname">${def.name} ${lvlBadge}</span>
+          <span class="bcost">${costStr}</span>
+        </button>
+        <div class="bblurb">${esc(def.blurb)}</div>${lockMsg}
+      </div>`;
+    }
+    $('build').innerHTML = html;
+  }
+
+  function renderDestiny(s) {
+    const el = $('destiny');
+    if (!s.unlocks.destiny) { el.innerHTML = ''; el.style.display = 'none'; return; }
+    el.style.display = '';
+    const d = Game.destiny(s);
+    const total = Object.values(d.scores).reduce((a, b) => a + b, 0) || 1;
+    const labels = { purist: 'Pure Warren', multirace: 'Motley Kingdom', chaos: 'Endless Road', villain: 'The Loom' };
+    let bars = '';
+    for (const id in d.scores) {
+      const pct = Math.round((d.scores[id] / total) * 100);
+      bars += `<div class="drow">
+        <span class="dname ${id === d.lead ? 'lead' : ''}">${labels[id]}</span>
+        <div class="bar dbar"><span style="width:${pct}%"></span></div>
+        <span class="dpct">${pct}%</span>
+      </div>`;
+    }
+    el.innerHTML = `<h2>Destiny <span class="cap">whispered by the Totem</span></h2>${bars}
+      <div class="hint">Your deeds tilt the tale. No one chose this but you — and you didn't quite mean to.</div>`;
+  }
+
+  function renderChronicle(s) {
+    let html = '<h2>Chronicle</h2>';
+    if (s.legendIntro) html += `<div class="cintro">${esc(s.legendIntro)}</div>`;
+    const recent = s.chronicle.slice(-40);
+    html += recent.map((c) => {
+      const grand = c.msg.startsWith('—') || c.msg.startsWith('═');
+      return `<div class="centry ${grand ? 'grand' : ''}">${esc(c.msg)}</div>`;
+    }).join('');
+    const el = $('chronicle');
+    el.innerHTML = html;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function renderModal(s) {
+    const el = $('modal');
+    if (s.ending) {
+      el.style.display = 'flex';
+      el.innerHTML = `<div class="card ending">
+        <h1>${esc(s.ending.name)}</h1>
+        ${s.ending.text.map((p) => `<p>${esc(p)}</p>`).join('')}
+        <div class="endstats">
+          greed ${s.stats.greed.toFixed(0)} · cruelty ${s.stats.cruelty.toFixed(0)} ·
+          openness ${s.stats.openness.toFixed(0)} · wanderlust ${s.stats.wanderlust.toFixed(0)}
+        </div>
+        <button class="act" data-act="restart">Begin a new goblin's tale →</button>
+      </div>`;
+      return;
+    }
+    if (s.pendingChoice) {
+      const pc = s.pendingChoice;
+      el.style.display = 'flex';
+      el.innerHTML = `<div class="card">
+        <h1>${esc(pc.title)}</h1>
+        <p>${esc(pc.text)}</p>
+        <div class="choices">${pc.options.map((o, i) =>
+          `<button class="act" data-act="choice" data-i="${i}">${esc(o.label)}</button>`).join('')}</div>
+      </div>`;
+      return;
+    }
+    el.style.display = 'none';
+    el.innerHTML = '';
+  }
+
+  // ---- single delegated click handler --------------------------
+  UI.bind = function (getState, onChange) {
+    document.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-act]');
+      if (!t) return;
+      const s = getState();
+      const act = t.dataset.act;
+      if (act === 'manual') Game.manual(s, t.dataset.kind);
+      else if (act === 'assign') Game.assign(s, t.dataset.job, parseInt(t.dataset.d, 10));
+      else if (act === 'build') Game.build(s, t.dataset.id);
+      else if (act === 'raid') Game.launchRaid(s);
+      else if (act === 'trade') Game.trade(s, t.dataset.kind);
+      else if (act === 'choice') Game.resolveChoice(s, parseInt(t.dataset.i, 10));
+      else if (act === 'restart') onChange('restart');
+      else return;
+      onChange('update');
+    });
+  };
+})();
