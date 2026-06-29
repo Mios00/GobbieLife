@@ -32,6 +32,8 @@
       races: { dwarf: 0, human: 0, elf: 0 }, // other races who've joined the tribe
       notables: [],         // named individual goblins (the roster)
       notableSeq: 0,        // id counter for notables
+      standing: initStanding(),     // per-faction standing (-100..100)
+      discovered: initDiscovered(), // which factions you've heard of (gradual)
       jobs: { forage: 0, dig: 0, raid: 0 },
 
       buildings: {
@@ -56,6 +58,7 @@
       chronicle: [],
       chronCount: 0,       // monotonic entry counter (UI dedup key)
       lastOracle: null,    // most recent Oracle riddle (shown in place of a destiny meter)
+      endgame: { active: false, stage: 0, accum: 0 }, // The Reckoning (endgame act)
       ending: null,        // set when game is finished
       log: [],             // short transient action feedback
     };
@@ -183,6 +186,53 @@
     return Math.pow(0.65, s.buildings.lookout || 0);
   };
 
+  // ---- factions & standing -------------------------------------
+  function initStanding() {
+    const m = {}; for (const id in GG.FACTIONS) m[id] = GG.FACTIONS[id].baseStanding || 0; return m;
+  }
+  function initDiscovered() {
+    const m = {}; for (const id in GG.FACTIONS) m[id] = !!GG.FACTIONS[id].startKnown; return m;
+  }
+  const clampStanding = (v) => Math.max(-100, Math.min(100, v));
+
+  Game.standing = function (s, id) {
+    const v = s.standing && s.standing[id];
+    return Number.isFinite(v) ? v : (GG.FACTIONS[id] ? GG.FACTIONS[id].baseStanding : 0);
+  };
+  Game.standingTier = function (v) {
+    const t = GG.STANDING_TIERS;
+    let name = t[0].name;
+    for (const tier of t) if (v >= tier.at) name = tier.name;
+    return name;
+  };
+  Game.adjustStanding = function (s, id, delta) {
+    if (!GG.FACTIONS[id]) return;
+    if (!s.standing) s.standing = initStanding();
+    s.standing[id] = clampStanding(Game.standing(s, id) + delta);
+  };
+  Game.isDiscovered = function (s, id) {
+    return !!(s.discovered && s.discovered[id]);
+  };
+  Game.knownFactions = function (s) {
+    return Object.keys(GG.FACTIONS).filter((id) => Game.isDiscovered(s, id));
+  };
+  // reveal a faction (idempotent). Returns true if newly discovered.
+  Game.discoverFaction = function (s, id) {
+    const f = GG.FACTIONS[id];
+    if (!f || (s.discovered && s.discovered[id])) return false;
+    if (!s.discovered) s.discovered = {};
+    if (!s.standing) s.standing = initStanding();
+    s.discovered[id] = true;
+    if (!Number.isFinite(s.standing[id])) s.standing[id] = f.baseStanding || 0;
+    chronicle(s, `Word reaches the warren of ${f.name} — ${f.rumor || ''}`.trim());
+    return true;
+  };
+  // reveal one not-yet-known faction (used on chapter turns; later: exploration/news)
+  function maybeDiscover(s) {
+    const unknown = Object.keys(GG.FACTIONS).filter((id) => !(s.discovered && s.discovered[id]));
+    if (unknown.length) Game.discoverFaction(s, pickOne(unknown));
+  }
+
   // what the place LOOKS like now: 0 (a hole) … 6 (a city), derived from how
   // rooted you are, how built-up, and how big the tribe has grown.
   Game.settlementTier = function (s) {
@@ -237,7 +287,7 @@
 
     // first-time-built gets a chronicle beat
     if (s.buildings[id] === 1) chronicle(s, firstBuildLine(id));
-    if (id === 'greatHall') Game.finish(s);
+    if (id === 'greatHall') Game.beginReckoning(s); // begins the endgame act, not an instant end
     return true;
   }
 
@@ -325,10 +375,17 @@
     s.resources[res] = Math.max(0, s.resources[res] + amt);
     if (res === 'shinies' && amt > 0) s.totals.shiniesTotal += amt;
   }
+  // which faction "homes" each race — welcoming them earns that power's goodwill
+  const RACE_HOME = { dwarf: 'karzun', human: 'aldermere', elf: 'aelinvar' };
   function gainRace(s, rc, n) {
     if (!GG.RACES[rc]) return;
     if (!s.races) s.races = {};
     s.races[rc] = Math.max(0, (s.races[rc] || 0) + n);
+    if (n > 0 && RACE_HOME[rc]) Game.adjustStanding(s, RACE_HOME[rc], 2 * n);
+  }
+  function nudgeTrade(s) { // commerce slowly warms the merchant powers
+    Game.adjustStanding(s, 'tannard', 0.3);
+    Game.adjustStanding(s, 'gilded', 0.3);
   }
   const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
   function loseGoblin(s) {
@@ -366,6 +423,7 @@
     if (opt.cost) for (const res in opt.cost) gain(s, res, -opt.cost[res]);
     if (opt.give) for (const res in opt.give) gain(s, res, opt.give[res]);
     if (opt.race) for (const rc in opt.race) gainRace(s, rc, opt.race[rc]);
+    if (opt.standing) for (const fid in opt.standing) Game.adjustStanding(s, fid, opt.standing[fid]);
     if (opt.loot) {
       for (const res in opt.loot) {
         const [lo, hi] = opt.loot[res];
@@ -401,16 +459,16 @@
     // sell 10 of a resource for shinies, or buy mushrooms with shinies
     if (kind === 'sellScrap' && s.resources.scrap >= 10) {
       s.resources.scrap -= 10; const got = 4; s.resources.shinies += got;
-      s.totals.shiniesTotal += got; s.tradeCount += 1; s.stats.openness += 0.2;
+      s.totals.shiniesTotal += got; s.tradeCount += 1; nudgeTrade(s); s.stats.openness += 0.2;
       note(s, 'Sold 10 scrap for ' + got + ' shinies.');
     }
     if (kind === 'sellMush' && s.resources.mushrooms >= 10) {
       s.resources.mushrooms -= 10; const got = 3; s.resources.shinies += got;
-      s.totals.shiniesTotal += got; s.tradeCount += 1; s.stats.openness += 0.2;
+      s.totals.shiniesTotal += got; s.tradeCount += 1; nudgeTrade(s); s.stats.openness += 0.2;
       note(s, 'Sold 10 mushrooms for ' + got + ' shinies.');
     }
     if (kind === 'buyMush' && s.resources.shinies >= 2) {
-      s.resources.shinies -= 2; s.resources.mushrooms += 12; s.tradeCount += 1; s.stats.openness += 0.2;
+      s.resources.shinies -= 2; s.resources.mushrooms += 12; s.tradeCount += 1; nudgeTrade(s); s.stats.openness += 0.2;
       note(s, 'Bought 12 mushrooms.');
     }
   };
@@ -430,6 +488,7 @@
     if (ok) {
       s.chapter += 1;
       chronicle(s, '— ' + GG.Story.herald(s.chapter, s.silliness) + ' —');
+      maybeDiscover(s); // the world gradually opens up as your tale advances
     }
   }
 
@@ -454,6 +513,19 @@
     const riddle = GG.Story.oracle(s);
     s.lastOracle = riddle;
     chronicle(s, riddle);
+  }
+
+  // caravans and wanderers bring news of the wider world — mostly flavour, and
+  // sometimes the news IS how you first hear of a faction you'd never met.
+  let worldNewsAccum = 0;
+  function tickWorldNews(s, dt) {
+    if (s.chapter < 1) return; // once the warren has woken a little
+    worldNewsAccum += dt;
+    if (worldNewsAccum < (C.worldNewsEverySec || 130)) return;
+    worldNewsAccum = 0;
+    const unknown = Object.keys(GG.FACTIONS).filter((id) => !(s.discovered && s.discovered[id]));
+    if (unknown.length && Math.random() < 0.4) { Game.discoverFaction(s, pickOne(unknown)); return; }
+    chronicle(s, GG.Story.worldNews(s));
   }
 
   // ---- notable goblins (named individuals who live, act, age, and die) ----
@@ -533,6 +605,7 @@
     const fx = v.effect || ev.effect || {};  // ...and falls back to base effect
     if (fx.give) for (const res in fx.give) gain(s, res, fx.give[res]);
     if (fx.race) for (const rc in fx.race) gainRace(s, rc, fx.race[rc]);
+    if (fx.standing) for (const fid in fx.standing) Game.adjustStanding(s, fid, fx.standing[fid]);
     if (fx.take) for (const res in fx.take) gain(s, res, -Math.floor(s.resources[res] * fx.take[res]));
     if (fx.pop) { if (fx.pop > 0) s.population += fx.pop; else for (let i = 0; i < -fx.pop; i++) loseGoblin(s); }
     if (fx.lean) for (const k in fx.lean) s.stats[k] += fx.lean[k];
@@ -588,8 +661,33 @@
     return { scores, lead };
   };
 
+  // ---- the Reckoning (endgame act) -----------------------------
+  // Raising the Great Hall begins a staged climactic act instead of ending the
+  // game on the spot. For now it auto-advances through placeholder beats and
+  // then resolves the ending; E4 will pause here for the player's Final Choice,
+  // and E5 will make the beats destiny-specific.
+  Game.beginReckoning = function (s) {
+    if (s.ending) return;
+    if (!s.endgame) s.endgame = { active: false, stage: 0, accum: 0 };
+    if (s.endgame.active) return;
+    s.endgame.active = true; s.endgame.stage = 0; s.endgame.accum = 0;
+    s.unlocks.finale = true;
+    chronicle(s, GG.Story.reckoningBeat(0, s.silliness));
+  };
+  function tickReckoning(s, dt) {
+    if (!s.endgame || !s.endgame.active || s.ending) return;
+    s.endgame.accum += dt;
+    if (s.endgame.accum < (C.reckoningStageSec || 18)) return;
+    s.endgame.accum = 0;
+    s.endgame.stage += 1;
+    const beat = GG.Story.reckoningBeat(s.endgame.stage, s.silliness);
+    if (beat != null) chronicle(s, beat);
+    else Game.finish(s); // out of beats → resolve (E4 will insert the Final Choice here)
+  }
+
   // ---- finale ---------------------------------------------------
   Game.finish = function (s) {
+    if (s.endgame) s.endgame.active = false;
     const d = Game.destiny(s);
     const id = d.lead || 'chaos';
     s.ending = { id, name: GG.ENDINGS[id].name, text: GG.Story.finale(id, s.silliness) };
@@ -609,7 +707,9 @@
 
     tickStory(s, dtSec);
     tickOracle(s, dtSec);
+    tickWorldNews(s, dtSec);
     tickNotables(s, dtSec);
+    tickReckoning(s, dtSec);
     tickEvents(s, dtSec);
     const tp = Game.totalPop(s);
     if (tp > (s.peakPop || 0)) s.peakPop = tp; // peak whole-tribe size gates building reveals
@@ -712,6 +812,14 @@
     // coerces types and drops any extra/attacker-injected keys (e.g. "__proto__").
     const res = {}; for (const k of numKeys) res[k] = nonneg(m.resources && m.resources[k]); m.resources = res;
     m.totals = { shiniesTotal: nonneg(m.totals && m.totals.shiniesTotal) };
+    // factions: known ids only — standing clamped to [-100,100], discovery sticky
+    const standing = {}, disc = {};
+    for (const id in GG.FACTIONS) {
+      const base = GG.FACTIONS[id].baseStanding || 0;
+      standing[id] = Math.max(-100, Math.min(100, n(m.standing && m.standing[id], base)));
+      disc[id] = !!(m.discovered && m.discovered[id]) || !!GG.FACTIONS[id].startKnown;
+    }
+    m.standing = standing; m.discovered = disc;
     // other races (known keys only, integer counts)
     const races = {}; for (const rc in GG.RACES) races[rc] = intNonneg(m.races && m.races[rc]); m.races = races;
     // population & job assignments (rendered raw → must be plain integers)
@@ -757,6 +865,9 @@
     m.name = str(m.name, base.name);
     m.legendIntro = str(m.legendIntro, base.legendIntro);
     m.lastOracle = (m.lastOracle == null) ? null : str(m.lastOracle, '');
+    // the Reckoning act state
+    const eg = (m.endgame && typeof m.endgame === 'object') ? m.endgame : {};
+    m.endgame = { active: bool(eg.active), stage: intNonneg(eg.stage), accum: nonneg(eg.accum) };
     m.log = Array.isArray(m.log) ? m.log.filter((x) => typeof x === 'string').slice(0, 4) : [];
     m.chronicle = Array.isArray(m.chronicle)
       ? m.chronicle.filter((c) => c && typeof c.msg === 'string')

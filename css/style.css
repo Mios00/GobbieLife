@@ -101,6 +101,22 @@ button { font-family: inherit; cursor: pointer; }
 .bcost .short { color: var(--blood); }
 .bblurb { color: var(--dim); font-size: 12px; font-style: italic; margin: 2px 2px 0; }
 
+/* faction standing */
+.frow { display: grid; grid-template-columns: 1fr 70px auto; gap: 8px; align-items: center; padding: 3px 0; }
+.fname { color: var(--ink); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fbar { margin: 0; }
+.fbar span.fbad  { background: var(--blood); }
+.fbar span.flow  { background: #c97f3a; }
+.fbar span.fmid  { background: var(--dim); }
+.fbar span.fgood { background: var(--moss); }
+.fbar span.fally { background: var(--gold); }
+.ftier { font-size: 11px; text-align: right; min-width: 64px; }
+.ftier.fbad  { color: var(--blood); }
+.ftier.flow  { color: #c97f3a; }
+.ftier.fmid  { color: var(--dim); }
+.ftier.fgood { color: var(--moss); }
+.ftier.fally { color: var(--gold); }
+
 /* the Oracle (replaces the old numeric destiny meter) */
 .oracle { color: var(--ink); font-style: italic; line-height: 1.6; border-left: 2px solid var(--gold);
   padding: 6px 0 6px 12px; margin: 4px 0 10px; }
@@ -172,6 +188,7 @@ button { font-family: inherit; cursor: pointer; }
 .endstats { color: var(--dim); font-size: 12px; text-align: center; margin: 16px 0; letter-spacing: 1px; }
 
 .silly { color: var(--gold); }
+.reckon { color: var(--blood); font-weight: bold; letter-spacing: 1px; }
 
 /* start screen — the Silliness Index dial */
 #start { position: fixed; inset: 0; background: radial-gradient(circle at 50% 30%, #1a2114, #0b0d08 80%);
