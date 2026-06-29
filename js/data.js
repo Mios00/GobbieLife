@@ -15,6 +15,7 @@
     upkeepPerGoblin: 0.03,   // mushrooms/sec eaten per goblin
     ambientStoryEverySec: 45, // ambient chronicle entry cadence (faster = richer history)
     oracleEverySec: 100,     // how often the Totem utters an Oracle riddle
+    worldNewsEverySec: 130,  // how often a caravan/wanderer brings news of the wider world
     raidDurationSec: 16,
     breedBaseCostMush: 6,    // mushrooms per new goblin (scales with pop) — cheap, breed a big tribe
     breedScale: 1.15,        // per-goblin breed-cost growth (gentler so large warrens stay viable)
@@ -238,8 +239,8 @@
           log: 'No guard left to tell of it. The lockboxes were everything you hoped.' },
         { label: 'Rob, but spare the drivers', loot: { shinies: [10, 16], scrap: [6, 10] }, lean: { greed: 2 },
           log: 'You took the gold and gave them back their boots. Strange mercy travels fast.' },
-        { label: 'Strike a deal instead', loot: { shinies: [5, 9] }, lean: { openness: 3 },
-          log: 'You traded threat for partnership. The merchant now sells your mushrooms two valleys over.' },
+        { label: 'Strike a deal instead', loot: { shinies: [5, 9] }, lean: { openness: 3 }, standing: { tannard: 4, gilded: 2 },
+          log: 'You traded threat for partnership. The merchant now sells your mushrooms two valleys over — and word of a goblin you can do business with travels with him.' },
       ],
       silly: {
         title: 'A Caravan With A Loyalty Program',
@@ -259,8 +260,8 @@
       title: 'A Frontier Village',
       text: 'A whole village of the tall folk — mills, a militia, a chapel bell already ringing.',
       options: [
-        { label: 'Burn it to the roots', loot: { shinies: [20, 34] }, risk: 0.25, lean: { cruelty: 4, greed: 2 },
-          log: 'Ash where a village stood. Some goblins did not come home, but the tale of it spread for miles.' },
+        { label: 'Burn it to the roots', loot: { shinies: [20, 34] }, risk: 0.25, lean: { cruelty: 4, greed: 2 }, standing: { aldermere: -8 },
+          log: 'Ash where a village stood. Some goblins did not come home, but the tale of it spread for miles. The Kingdom of Aldermere will remember this one.' },
         { label: 'Conquer and rule them', loot: { shinies: [12, 20], scrap: [14, 22] }, risk: 0.15, lean: { cruelty: 2, greed: 1 },
           log: 'You did not destroy the village. You took it. The tall folk bow to a goblin lord now.' },
         { label: 'Offer them protection (for tribute)', loot: { shinies: [8, 14] }, lean: { openness: 2, greed: 1 },
@@ -644,12 +645,12 @@
       title: 'Another Warren\'s Warband',
       text: 'A rival goblin warband — bigger, meaner, and annoyed by your growing reputation — appears at the gate demanding tribute.',
       options: [
-        { label: 'Fight them off', loot: { scrap: [8, 16] }, risk: 0.45, lean: { cruelty: 3 },
-          log: 'Goblin against goblin in the mud. You won — barely. The warren held, the survivors swagger, and word travels: this warren bites.' },
+        { label: 'Fight them off', loot: { scrap: [8, 16] }, risk: 0.45, lean: { cruelty: 3 }, standing: { snaggletooth: -8 },
+          log: 'Goblin against goblin in the mud. You won — barely. The warren held, the survivors swagger, and the Snaggletooth Warren nurses a fresh and lasting grudge.' },
         { label: 'Pay the tribute', cost: { shinies: 14 }, lean: { greed: 1 },
           log: 'You paid them off in shinies and swallowed pride. They\'ll be back next season, of course. They always are.' },
-        { label: 'Buy them a drink and a deal', cost: { shinies: 8 }, lean: { openness: 3 },
-          log: 'You got the rival chief gloriously drunk and left as something like allies. Two warrens are scarier than one.' },
+        { label: 'Buy them a drink and a deal', cost: { shinies: 8 }, lean: { openness: 3 }, standing: { snaggletooth: 8 },
+          log: 'You got the rival chief gloriously drunk and left as something like allies. The Snaggletooth Warren counts you a friend now — for whatever a goblin\'s friendship is worth.' },
       ],
       silly: {
         title: 'A Rival Warband (With Brand Synergy)',

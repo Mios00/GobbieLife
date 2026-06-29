@@ -312,4 +312,36 @@
   S.settlement = function (tier) {
     return SETTLEMENTS[Math.max(0, Math.min(SETTLEMENTS.length - 1, tier | 0))];
   };
+
+  // --- world news ------------------------------------------------
+  // Overheard from caravans and wanderers — the world is bigger than the warren,
+  // and things happen out there whether or not they reach your gate. Mostly
+  // flavour for now; some will grow consequences later (disasters → refugees,
+  // price spikes, dangerous zones). A few seed the coming Comet.
+  const WORLDNEWS = [
+    { text: 'A trader passing through speaks of a great quake that swallowed a road three valleys east. "Whole bridge, gone," he says, and spits.',
+      silly: 'A trader reports an earthquake ate a toll bridge three valleys east. He seems to feel the bridge had it coming.' },
+    { text: 'A wanderer warms herself at your fire and murmurs of a plague-year in the lowlands. The caravans are taking the long way around now.',
+      silly: 'A wanderer mentions a plague in the lowlands, then asks to share your soup. You think about this for a long moment.' },
+    { text: 'Caravan-talk: a far-off kingdom has crowned a child-queen, and three uncles who all smile too much.',
+      silly: 'Road gossip: a distant kingdom crowned a child-queen flanked by three uncles smiling like they\'ve already drafted the eulogy.' },
+    { text: 'A drover says the river Mourn ran red for a week and no one would say why. He left before he had to find out.',
+      silly: 'A drover swears the river Mourn ran red for a week. He did NOT investigate, and considers this his cleverest life decision.' },
+    { text: 'Wanderers speak of a comet hung low in the southern sky, brighter each night. The old ones are nervous. The old ones are usually right.',
+      silly: 'Wanderers keep mentioning a comet getting brighter down south. The old ones are nervous. The old ones have a 100% hit rate and it is ANNOYING.' },
+    { text: 'A tinker reports a dragon woke somewhere in the peaks, and a duke\'s tax-train simply never arrived. He found this very funny.',
+      silly: 'A tinker reports a dragon woke up and a duke\'s entire tax-train vanished. He is delighted. Frankly, so are you.' },
+    { text: 'Word on the road: two kingdoms that loathed each other now loathe someone else more, and have, grotesquely, become friends.',
+      silly: 'Road news: two kingdoms that hated each other found a third thing to hate together and are now besties. Politics!' },
+    { text: 'A pilgrim tells of famine in the wheat-lands; bread costs a week\'s wage. Goblins, who eat mushrooms, feel briefly and smugly superior.',
+      silly: 'A pilgrim reports bread now costs a week\'s wage in the wheat-lands. The warren, which eats mushrooms, is INSUFFERABLE about this for days.' },
+    { text: 'A caravan-guard says the dead walked at Mournhollow again this autumn — polite as ever — and then went back to work.',
+      silly: 'A caravan-guard says the dead got up and walked at Mournhollow again, said sorry, and clocked back in. Great work ethic, terrible vibes.' },
+    { text: 'A storm-season worse than any in memory drowned the coast road, they say. The fishers are calling it an omen. The fishers always are.',
+      silly: 'Worst storm-season in memory drowned the coast road. The fishers are calling it an omen. The fishers call EVERYTHING an omen.' },
+  ];
+  S.worldNews = function (state) {
+    const n = pick(WORLDNEWS);
+    return silly(state.silliness) ? n.silly : n.text;
+  };
 })();

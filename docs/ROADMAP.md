@@ -92,8 +92,8 @@ the other — story is woven through world-building so the finale grows alongsid
 world it pays off. (Dependencies in each task still apply; this order respects them.)
 
 1. [x] **T0.1** — Factions, standing & gradual discovery ✅
-2. [ ] **T0.2** — Standing panel + deeds move standing
-3. [ ] **T0.3** — World news feed (flavor; also a discovery vector)
+2. [x] **T0.2** — Standing panel + deeds move standing ✅
+3. [x] **T0.3** — World news feed (flavor; also a discovery vector) ✅
 4. [ ] **E1** — Finale → multi-act Reckoning scaffold  *(restructure the endgame early)*
 5. [ ] **E2** — Protagonist mortality + the two clocks
 6. [ ] **E3** — Hold (grip) + succession
@@ -222,16 +222,10 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
   - Goal: a world of named factions, a per-faction standing meter, and *gradual* knowledge of who's out there.
   - Done: `GG.FACTIONS` (11 — Aldermere, Beast-Wilds, Snaggletooth Warren, Tannard, Karzun, Aelinvar, Gorefist Horde, Gilded League, Mournhollow, Thornveil, Ssirvax) with `kind`/`baseStanding`/`startKnown`/`rumor`; `GG.STANDING_TIERS`. State: `s.standing` (-100..100 per faction) + `s.discovered` (only 3 known at start). `Game.standing/standingTier/adjustStanding/isDiscovered/knownFactions/discoverFaction`. Discovery announced in the Chronicle; one new faction revealed per chapter turn (exploration/news will add more later). Full `sanitizeState` coercion (unknown ids dropped, standing clamped, discovery sticky + startKnown forced) + migrate. 24 tests, all green.
   - Next: T0.2 surfaces this in a Standing panel and wires deeds → standing.
-- [ ] **T0.2 — Standing panel + deeds move standing**
-  - Goal: see how each faction regards you; existing actions change it.
-  - Scope: a `#standing` panel (faction + tier, color-coded). Wire raids/cruelty to lower nearby-faction standing, trade/mercy/welcoming-races to raise it. Start most factions at **Despised**.
-  - Depends: T0.1.
-  - Accept: panel renders known factions; a raid lowers the relevant standing; a trade raises one; escaped output; tests.
-- [ ] **T0.3 — World news feed (flavor)**
-  - Goal: the world feels alive; you overhear distant events.
-  - Scope: `GG.WORLDNEWS` pool (disasters, far-off wars, festivals, faction doings) + `tickWorldNews` delivering a caravan/wanderer-framed Chronicle line on a cadence. Earnest + silly variants. Pure flavor for now.
-  - Depends: none (can run alongside T0.1).
-  - Accept: news lines appear on cadence; silly/earnest split honored; tests.
+- [x] **T0.2 — Standing panel + deeds move standing** ✅
+  - Done: `#standing` panel showing only *discovered* factions with a color-coded bar + tier (Despised…Allied) and a "N powers still beyond your knowing" hint. `standing` deltas on choices (`opt.standing`) + auto-events (`fx.standing`); wired burning a village (−Aldermere), striking a caravan deal (+Tannard/Gilded), fighting/allying the Snaggletooth rival (∓), welcoming a race auto-warms its home faction (`gainRace` → Karzun/Aldermere/Aelinvar), and trading warms the merchant powers. Escaped output. 18 tests (shared with T0.3).
+- [x] **T0.3 — World news feed** ✅
+  - Done: `GG.WORLDNEWS` pool (quakes, plagues, far-off coups, a waking dragon, famine, the walking dead at Mournhollow, storms) with earnest + silly variants; `Story.worldNews` picks register by Silliness; `tickWorldNews` (cadence `worldNewsEverySec`) drops a caravan/wanderer-framed Chronicle line — and ~40% of the time the news IS how you first hear of an undiscovered faction (a second discovery vector beyond chapter turns). Several lines **seed the coming Comet**. Gated to chapter ≥ 1. 18 tests (shared with T0.2).
 
 ## Phase 1 — Adventure v1  *(the core new loop)*
 
@@ -294,6 +288,7 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-29 — **T0.2 + T0.3** — Standing panel (color-coded, discovered factions only) + deeds move standing (raids/deals/welcoming races/trade); World news feed (caravan/wanderer flavor, comet seeds, second discovery vector). 18 tests.
 - 2026-06-29 — **Build order** — added a single Blended build order interleaving the world track (T*) and story track (E*); story is woven through, not appended after.
 - 2026-06-29 — **Story design** — added the Story Bible (The Bargain spine, one-story-four-lenses, recurring cast, two clocks, the Final Choice, mortality & succession, become-the-Oracle, endings) and **Phase E** (E1–E7) endgame/story tasks.
 - 2026-06-29 — **T0.1** — Factions data model (11 factions), per-faction standing + tiers, gradual discovery (chapter-driven for now), sanitize/migrate, 24 tests.

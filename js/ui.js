@@ -31,6 +31,7 @@
     renderActions(s);
     renderBuild(s);
     renderOracle(s);
+    renderStanding(s);
     renderAnnals(s);
     renderChronicle(s);
     renderModal(s);
@@ -252,6 +253,30 @@
       : `<div class="hint">The Totem is listening. It has not yet decided what to say of you.</div>`;
     el.innerHTML = `<h2>The Oracle <span class="cap">the Totem's riddle</span></h2>${body}
       <div class="hint">It will never name your destiny outright. Listen — and decide what you hear.</div>`;
+  }
+
+  // how the powers of the world regard you (only factions you've discovered)
+  function renderStanding(s) {
+    const el = $('standing');
+    if (!el) return;
+    const known = Game.knownFactions(s);
+    if (!known.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+    el.style.display = '';
+    const total = Object.keys(GG.FACTIONS).length;
+    const cls = (v) => v <= -55 ? 'fbad' : v < -20 ? 'flow' : v < 15 ? 'fmid' : v < 75 ? 'fgood' : 'fally';
+    const rows = known.map((id) => {
+      const f = GG.FACTIONS[id], v = Game.standing(s, id), pct = Math.round((v + 100) / 2), c = cls(v);
+      return `<div class="frow">
+        <span class="fname" title="${esc(f.rumor || '')}">${esc(f.name)}</span>
+        <div class="bar fbar"><span class="${c}" style="width:${pct}%"></span></div>
+        <span class="ftier ${c}">${esc(Game.standingTier(v))}</span>
+      </div>`;
+    }).join('');
+    const unknown = total - known.length;
+    const hint = unknown > 0
+      ? `<div class="hint">${unknown} power${unknown === 1 ? '' : 's'} of the world still beyond your knowing…</div>`
+      : `<div class="hint">You have heard of every power in the world.</div>`;
+    el.innerHTML = `<h2>Standing <span class="cap">${known.length}/${total} known</span></h2>${rows}${hint}`;
   }
 
   function renderAnnals(s) {
