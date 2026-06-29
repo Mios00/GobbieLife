@@ -36,10 +36,30 @@
   function renderHeader(s) {
     const chap = s.chapter > 0 && GG.CHAPTERS[s.chapter - 1]
       ? GG.CHAPTERS[s.chapter - 1].title : 'Prologue';
+    const pct = Math.round((s.silliness || 0) * 100);
     $('hdr').innerHTML =
       `<div class="title">GOBLIN <span class="sub">— a tale of growth &amp; shenanigans</span></div>
-       <div class="meta"><b>${esc(s.name)}</b> &nbsp;·&nbsp; ${esc(chap)}</div>`;
+       <div class="meta"><b>${esc(s.name)}</b> &nbsp;·&nbsp; ${esc(chap)}
+         &nbsp;·&nbsp; <span class="silly" title="The Silliness Index you set at the start">Silliness ${pct}% · ${esc(UI.sillyTier(s.silliness))}</span></div>`;
   }
+
+  // shared tier naming + flavor for the Silliness Index (0..1)
+  UI.sillyTier = function (v) {
+    const p = (v || 0) * 100;
+    if (p < 15) return 'Deadly Serious';
+    if (p < 35) return 'Wry';
+    if (p < 60) return 'Cheeky';
+    if (p < 85) return 'Silly';
+    return 'Utterly Unhinged';
+  };
+  UI.sillyBlurb = function (v) {
+    const p = (v || 0) * 100;
+    if (p < 15) return 'A grim little fable. Every joke has a knife in it.';
+    if (p < 35) return 'Mostly earnest, with a goblin\'s dark sense of humour.';
+    if (p < 60) return 'Equal parts heart and havoc. The classic goblin blend.';
+    if (p < 85) return 'The shenanigans are winning, and they know it.';
+    return 'There is a crow lawyer. Do not ask. (You will ask.)';
+  };
 
   function renderResources(s) {
     const r = Game.rates(s);
@@ -263,6 +283,48 @@
     el.style.display = 'none';
     el.innerHTML = '';
   }
+
+  // ---- pre-game start screen (the Silliness Index dial) --------
+  UI.showStart = function (onBegin, initial) {
+    const el = $('start');
+    if (!el) return;
+    let val = initial == null ? 0.3 : initial;
+    el.style.display = 'flex';
+    el.innerHTML = `<div class="card start">
+      <h1>GOBLIN</h1>
+      <p class="startsub">A runt goblin. A hole in the world. A tale that earns its own ending.<br>
+        Before you begin, set the <b>Silliness Index</b> — how silly and satirical your run will be.</p>
+      <div class="sliderwrap">
+        <input id="sillyRange" class="sillyrange" type="range" min="0" max="100" step="1" value="${Math.round(val * 100)}" />
+        <div class="sillyends"><span>Deadly Serious</span><span>Utterly Unhinged</span></div>
+      </div>
+      <div class="sillymeta">
+        <span class="sillytier" id="sillyTier">${esc(UI.sillyTier(val))}</span>
+        <span class="sillypct">Silliness Index <b id="sillyPct">${Math.round(val * 100)}</b>%</span>
+      </div>
+      <div class="sillyblurb" id="sillyBlurb">${esc(UI.sillyBlurb(val))}</div>
+      <button class="act begin" id="sillyBegin">Begin your tale →</button>
+      <div class="startnote">You can’t change this mid-run — it shapes the whole story. Start a new tale to try another setting.</div>
+    </div>`;
+
+    const range = $('sillyRange');
+    const refresh = () => {
+      val = (parseInt(range.value, 10) || 0) / 100;
+      $('sillyTier').textContent = UI.sillyTier(val);
+      $('sillyPct').textContent = Math.round(val * 100);
+      $('sillyBlurb').textContent = UI.sillyBlurb(val);
+    };
+    range.addEventListener('input', refresh);
+    $('sillyBegin').addEventListener('click', () => {
+      el.style.display = 'none';
+      el.innerHTML = '';
+      onBegin(val);
+    });
+  };
+  UI.hideStart = function () {
+    const el = $('start');
+    if (el) { el.style.display = 'none'; el.innerHTML = ''; }
+  };
 
   // ---- single delegated click handler --------------------------
   UI.bind = function (getState, onChange) {

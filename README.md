@@ -16,6 +16,18 @@ behind the scenes and the story drifts toward whichever you've been feeding —
 often a surprise even to the author. Build the **Totem of Tales** to glimpse
 your "Destiny" meter; raise the **Great Hall** to end your tale.
 
+### The Silliness Index
+
+Before a run begins, you drag the **Silliness Index** — a 0–100% dial from
+*Deadly Serious* to *Utterly Unhinged*. It sets the probability that any given
+narrative draw (your opening legend, ambient beats, raid encounters, random
+events, chapter heralds, the finale) comes from the **silly/satirical** register
+instead of the earnest one. Every line has a parallel silly twin, so the same
+turnip farm is either a grim cautionary raid or the founding of a tiny turnip
+republic (its flag is a sock). The dial is fixed for the run — start a new tale
+to try a different temperament. (See `docs/story-tone-mockup.md` for the full
+tonal comparison that inspired it.)
+
 Along the way the world pushes back: **random events** (wandering bards, ragged
 refugees, a sleeping wyrm's hoard, a sickness in the tunnels) interrupt with
 choices that quietly tilt those same hidden stats. A **Lookout Warren** makes
@@ -53,8 +65,8 @@ narrative is **procedurally assembled** from authored building blocks:
 |------|------|
 | `index.html` | shell + panels |
 | `css/style.css` | mossy-cave terminal theme |
-| `js/data.js` | resources, buildings, jobs, raid targets, **events**, **achievements**, endings (all balance numbers) |
-| `js/story.js` | procedural narrative engine |
+| `js/data.js` | resources, buildings, jobs, raid targets, **events**, **achievements**, endings — each with earnest + **silly** variants (all balance numbers) |
+| `js/story.js` | procedural narrative engine (earnest + silly registers, blended by the Silliness Index) |
 | `js/game.js` | state, idle simulation, raids, **events**, **achievements**, hidden stats, save/load + export/import |
 | `js/ui.js` | rendering + one delegated input handler |
 | `js/main.js` | boot + game loop |

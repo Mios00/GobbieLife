@@ -11,12 +11,16 @@
   const Game = (GG.Game = {});
 
   // ---- fresh state ---------------------------------------------
-  function newState() {
-    const legend = GG.Story.makeLegend();
+  // `silliness` is the Silliness Index (0..1) the player sets before starting:
+  // the probability that any narrative draw uses the silly/satirical register.
+  function newState(silliness) {
+    silliness = (silliness == null) ? 0.3 : Math.max(0, Math.min(1, silliness));
+    const legend = GG.Story.makeLegend(silliness);
     return {
       version: 1,
       startedAt: Date.now(),
       lastSeen: Date.now(),
+      silliness,
       name: legend.name,
       legendIntro: legend.intro.replace('#NAME#', legend.name),
 
@@ -249,15 +253,22 @@
   function pickRaidTarget() {
     return GG.RAID_TARGETS[Math.floor(Math.random() * GG.RAID_TARGETS.length)];
   }
+  // choose the silly OR earnest face of a raid/event entry, per the Index.
+  // Entries without a `.silly` variant always fall back to the earnest one.
+  function pickVariant(entry, s) {
+    return (entry.silly && Math.random() < (s.silliness || 0)) ? entry.silly : entry;
+  }
+
   function resolveRaid(s) {
     const tgt = s.raid.target;
     s.raid = { active: false, returnsAt: 0, target: null };
     s.raidCount += 1;
-    // surface the choice to the player
+    // surface the choice to the player (silly or earnest face)
+    const v = pickVariant(tgt, s);
     s.pendingChoice = {
-      title: tgt.title,
-      text: tgt.text,
-      options: tgt.options.map((o) => ({ ...o })),
+      title: v.title,
+      text: v.text,
+      options: v.options.map((o) => ({ ...o })),
       _raiders: s.jobs.raid,
     };
   }
@@ -357,7 +368,7 @@
     if (req.greatHall && s.buildings.greatHall < req.greatHall) ok = false;
     if (ok) {
       s.chapter += 1;
-      chronicle(s, '— ' + GG.Story.herald(s.chapter) + ' —');
+      chronicle(s, '— ' + GG.Story.herald(s.chapter, s.silliness) + ' —');
     }
   }
 
@@ -397,12 +408,13 @@
     return pool[pool.length - 1];
   }
   function fireAutoEvent(s, ev) {
-    const fx = ev.effect || {};
+    const v = pickVariant(ev, s);            // silly variant may swap the text
+    const fx = v.effect || ev.effect || {};  // ...and falls back to base effect
     if (fx.give) for (const res in fx.give) gain(s, res, fx.give[res]);
     if (fx.take) for (const res in fx.take) gain(s, res, -Math.floor(s.resources[res] * fx.take[res]));
     if (fx.pop) { if (fx.pop > 0) s.population += fx.pop; else for (let i = 0; i < -fx.pop; i++) loseGoblin(s); }
     if (fx.lean) for (const k in fx.lean) s.stats[k] += fx.lean[k];
-    chronicle(s, ev.text);
+    chronicle(s, v.text);
   }
   function tickEvents(s, dt) {
     if (s.pendingChoice || (s.raid && s.raid.active)) return; // don't pile up modals
@@ -415,11 +427,12 @@
     if (!pool.length) return;
     const ev = pickEvent(s, pool);
     if (ev.options) {
-      // choice event → reuse the same modal plumbing as raids
+      // choice event → reuse the same modal plumbing as raids (silly/earnest)
+      const v = pickVariant(ev, s);
       s.pendingChoice = {
-        title: ev.title,
-        text: ev.text,
-        options: ev.options.map((o) => ({ ...o })),
+        title: v.title,
+        text: v.text,
+        options: v.options.map((o) => ({ ...o })),
         isEvent: true,
       };
     } else {
@@ -457,7 +470,7 @@
   Game.finish = function (s) {
     const d = Game.destiny(s);
     const id = d.lead || 'chaos';
-    s.ending = { id, name: GG.ENDINGS[id].name, text: GG.Story.finale(id) };
+    s.ending = { id, name: GG.ENDINGS[id].name, text: GG.Story.finale(id, s.silliness) };
     chronicle(s, '════ THE END ════');
   };
 
@@ -545,6 +558,7 @@
     merged.raid = Object.assign({}, base.raid, s.raid);
     merged.achievements = Object.assign({}, s.achievements || {});
     if (merged.buyAmt == null) merged.buyAmt = 1;
+    if (merged.silliness == null) merged.silliness = 0.3; // legacy saves stay mostly-earnest
     return merged;
   }
 })();

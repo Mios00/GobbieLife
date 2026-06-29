@@ -124,6 +124,18 @@
         { label: 'Leave them be, take the road', loot: { shinies: [1, 3] }, lean: { openness: 2, wanderlust: 1 },
           log: 'You waved the warband off. There were bigger, stranger places down the road than a turnip farm.' },
       ],
+      silly: {
+        title: 'A Suspiciously Sentient Farm',
+        text: 'Your warband returns from a turnip farm. The turnips had opinions. The turnips had DEMANDS. The family is hiding in the cellar, which is, honestly, the most sensible thing anyone has done today.',
+        options: [
+          { label: 'Found a tiny turnip republic', loot: { shinies: [6, 12], mushrooms: [10, 20] }, lean: { greed: 2, cruelty: 2 },
+            log: 'You declared the field a sovereign nation. Its flag is a sock. Two kingdoms have recognized it. You are, as of this morning, at war with both.' },
+          { label: 'Become the farmer\'s life coach', loot: { shinies: [4, 8] }, lean: { greed: 2, openness: 1 },
+            log: 'You didn\'t rob him — you restructured his entire worldview over one intense evening. He\'s "finding himself" now. You take 40% as a finder\'s fee for the self.' },
+          { label: 'Steal the actual cellar', loot: { shinies: [1, 3] }, lean: { openness: 2, wanderlust: 1 },
+            log: 'Not the family. The cellar. The literal cellar. Nobody knows how. The family live in your warren now and are unsure whether they are hostages or roommates. So are you.' },
+        ],
+      },
     },
     {
       id: 'caravan',
@@ -137,6 +149,18 @@
         { label: 'Strike a deal instead', loot: { shinies: [5, 9] }, lean: { openness: 3 },
           log: 'You traded threat for partnership. The merchant now sells your mushrooms two valleys over.' },
       ],
+      silly: {
+        title: 'A Caravan With A Loyalty Program',
+        text: 'Wheels in the dark. A merchant caravan — the guards are unionized and on break, and the lockboxes appear to run on a subscription model.',
+        options: [
+          { label: 'Cancel their subscription violently', loot: { shinies: [14, 24], scrap: [10, 18] }, lean: { greed: 2, cruelty: 3 },
+            log: 'You ended the subscription with extreme prejudice. The lockboxes were everything the brochure promised and more.' },
+          { label: 'Become a satisfied returning customer', loot: { shinies: [10, 16], scrap: [6, 10] }, lean: { greed: 2 },
+            log: 'You robbed them so politely they gave you a loyalty card. The tenth robbery is free. You are, against your will, a little touched.' },
+          { label: 'Pivot to a strategic partnership', loot: { shinies: [5, 9] }, lean: { openness: 3 },
+            log: 'You traded menace for a merger. The merchant now distributes your mushroom ale two valleys over. The word, apparently, is "synergy."' },
+        ],
+      },
     },
     {
       id: 'village',
@@ -150,6 +174,18 @@
         { label: 'Offer them protection (for tribute)', loot: { shinies: [8, 14] }, lean: { openness: 2, greed: 1 },
           log: 'You named yourself their shield against worse things than you. They half-believe it. So do you.' },
       ],
+      silly: {
+        title: 'A Frontier Village With A Newsletter',
+        text: 'A whole village of the tall folk — mills, a militia, a chapel bell, and a surprisingly active community newsletter that already mentions you by name, mostly in the complaints section.',
+        options: [
+          { label: 'Get cancelled, then burn it down', loot: { shinies: [20, 34] }, risk: 0.25, lean: { cruelty: 4, greed: 2 },
+            log: 'You answered your bad press with fire. The newsletter\'s final issue was, everyone agreed, its strongest work.' },
+          { label: 'Run for mayor (unopposed, suddenly)', loot: { shinies: [12, 20], scrap: [14, 22] }, risk: 0.15, lean: { cruelty: 2, greed: 1 },
+            log: 'You did not conquer the village. You won a landslide election nobody recalls holding. The tall folk call you "Your Honour" now, very nervously.' },
+          { label: 'Offer "protection" (it is an MLM)', loot: { shinies: [8, 14] }, lean: { openness: 2, greed: 1 },
+            log: 'You named yourself their shield against worse goblins. There are no worse goblins. They pay monthly, and some have alarmingly started recruiting.' },
+        ],
+      },
     },
     {
       id: 'ruin',
@@ -163,6 +199,18 @@
         { label: 'Bring a scholar back to study it', loot: { shinies: [3, 6] }, lean: { openness: 3, wanderlust: 1 },
           log: 'You returned with a wide-eyed elf scholar who calls your warren "a remarkable culture." Goblins are unsure how to feel.' },
       ],
+      silly: {
+        title: 'A Wizard\'s Ruin (Now A Pop-Up Shop)',
+        text: 'A collapsed tower humming with old magic and a hand-painted sign: "EVERYTHING MUST GO." No one to fight. Only choices, and several impulse purchases.',
+        options: [
+          { label: 'Buy every cursed thing on clearance', loot: { shinies: [16, 28], scrap: [8, 14] }, lean: { greed: 3, wanderlust: 1 },
+            log: 'You hauled out armfuls of humming junk. Several goblins now glow. One can see next Tuesday. He refuses to elaborate. Worth it.' },
+          { label: 'Only take what has a return policy', loot: { shinies: [7, 12] }, lean: { wanderlust: 2 },
+            log: 'You left the dangerous wonders sleeping. The road out felt longer, and you found yourself quietly appreciating the warranty implications.' },
+          { label: 'Adopt the wizard\'s ghost as an intern', loot: { shinies: [3, 6] }, lean: { openness: 3, wanderlust: 1 },
+            log: 'You returned with a translucent intern who calls your warren "a vibrant disruptor." The goblins do not know what that means. Neither, you suspect, does he.' },
+        ],
+      },
     },
     {
       id: 'minecart',
@@ -176,6 +224,18 @@
         { label: 'Wait, and return it for a reward', loot: { shinies: [9, 15] }, lean: { openness: 3 },
           log: 'You sat on the cart and waved when the dwarves arrived. Baffled, grateful, suspicious — they paid you anyway, and now you have a dwarf who owes you a favour.' },
       ],
+      silly: {
+        title: 'A Runaway Mine Cart (No Brakes, Big Mood)',
+        text: 'A dwarven ore cart has jumped its rails, wheels still spinning, going absolutely nowhere at top speed. You can hear hammers below, and what might be a dwarven HR complaint being drafted in real time.',
+        options: [
+          { label: 'Strip it for parts and a cool story', loot: { scrap: [18, 30], shinies: [6, 10] }, lean: { greed: 2, wanderlust: 1 },
+            log: 'You stripped the cart before the first dwarf surfaced. They are cursing your name in three dialects and one interpretive dance.' },
+          { label: 'Launch a competing cart startup', loot: { scrap: [12, 20], shinies: [10, 16] }, risk: 0.2, lean: { greed: 3 },
+            log: 'You rolled the whole cart home and founded "Cart, But Goblin." Disruptive. Deeply litigious. Surprisingly profitable.' },
+          { label: 'Return it for the reward and the clout', loot: { shinies: [9, 15] }, lean: { openness: 3 },
+            log: 'You returned the cart, waved, and accepted both a reward and a baffled dwarven friendship. He owes you a favour and, he insists, a beer.' },
+        ],
+      },
     },
     {
       id: 'hoard',
@@ -189,6 +249,18 @@
         { label: 'Wake it gently and... talk', loot: { shinies: [8, 14] }, risk: 0.15, lean: { openness: 4, wanderlust: 1 },
           log: 'Nobody talks to dragons. You did. It found a goblin\'s nerve so funny it let you leave with a gift and an open invitation. The warren now has, technically, a dragon contact.' },
       ],
+      silly: {
+        title: 'A Sleeping Wyrm (Do Not Perceive It)',
+        text: 'Down a scorched ravine, a young dragon naps on a hill of gold. The dream is, by the snoring, going great. The coins shift like a very expensive ASMR video.',
+        options: [
+          { label: 'Take it all, start a beef with a dragon', loot: { shinies: [40, 70], scrap: [10, 20] }, risk: 0.45, lean: { greed: 4, cruelty: 2 },
+            log: 'You took everything and the sky turned to fire. Some goblins are ash now. The survivors are RICH and the group chat is, frankly, unhinged.' },
+          { label: 'Skim the edges like a coward genius', loot: { shinies: [16, 26] }, risk: 0.1, lean: { greed: 2, wanderlust: 2 },
+            log: 'You took only what you could carry quietly and were a ridge away before it snored again. Patience, you decide, is just greed with a longer fuse.' },
+          { label: 'Network with the dragon', loot: { shinies: [8, 14] }, risk: 0.15, lean: { openness: 4, wanderlust: 1 },
+            log: 'Nobody networks with dragons. You did. It found your nerve hilarious and gave you its card. The warren has a dragon contact now. LinkedIn is shaking.' },
+        ],
+      },
     },
   ];
 
@@ -207,30 +279,35 @@
       when: () => true,
       text: 'A goblin trips, swears, and comes up clutching a fistful of coins someone buried and forgot. Finders keepers.',
       effect: { give: { shinies: 5 }, lean: { greed: 1 } },
+      silly: { text: 'A goblin trips, swears creatively in three languages, and surfaces clutching coins someone buried and forgot. The law, out here, is at best a strongly-worded suggestion.' },
     },
     {
       id: 'goodHarvest', weight: 2,
       when: (s) => s.buildings.mushroomPatch > 0,
       text: 'The patches come in fat and strange this season. The whole warren eats well and naps in a pile.',
       effect: { give: { mushrooms: 25 } },
+      silly: { text: 'The patches come in fat, faintly glowing, and humming the chorus of a song nobody taught them. The warren eats well and naps in a deeply suspicious pile.' },
     },
     {
       id: 'scrapVein', weight: 2,
       when: (s) => s.buildings.scrapHeap > 0,
       text: 'A digger breaks through into an old, forgotten dump — a whole seam of glorious junk.',
       effect: { give: { scrap: 22 }, lean: { greed: 1 } },
+      silly: { text: 'A digger breaks into an ancient dump and screams with pure joy. It is a SEAM of world-class junk. He has named it. He will not tell you the name. It is, he says, "between him and the junk."' },
     },
     {
       id: 'strayGoblin', weight: 2,
       when: (s) => s.unlocks.breeding && s.population < (2 + s.buildings.burrow * 3),
       text: 'A muddy stranger wanders in from the dark, eats your dinner without asking, and is somehow already one of you.',
       effect: { pop: 1 },
+      silly: { text: 'A muddy stranger wanders in, eats your dinner without eye contact, and is somehow already on the roster, the payroll, and two separate group chats.' },
     },
     {
       id: 'mushRot', weight: 1, bad: true,
       when: (s) => s.resources.mushrooms > 30,
       text: 'A grey rot sweeps the stores overnight. A good portion of the mushroom hoard is fit only for the rubbish heap.',
       effect: { take: { mushrooms: 0.25 } }, // fraction
+      silly: { text: 'A grey rot sweeps the stores overnight. A chunk of the mushroom hoard is now, technically, abstract art. A goblin attempts to sell it as abstract art. He makes nothing. The rot remains.' },
     },
 
     // ---- choice events ----
@@ -247,6 +324,18 @@
         { label: 'Send him on his way', lean: { wanderlust: 1 },
           log: 'You watched the bard go. Some stories, you decide, are better not told. Or not yet.' },
       ],
+      silly: {
+        title: 'A Bard, Allegedly',
+        text: 'A man insists he is a famous bard. His "lute" is a roof tile. He says he will make you immortal. He has a 1-star review nailed to his chest that he has, mercifully, never read.',
+        options: [
+          { label: 'Commission an EPIC about your puddle', cost: { mushrooms: 10 }, lean: { openness: 2, wanderlust: 1 },
+            log: 'A 47-verse ballad about the puddle. Verse 31 is just him crying. You are now "the puddle guy" in four kingdoms and will never, ever escape it.' },
+          { label: 'Hire him. Not as a bard. As a problem.', give: { shinies: 7 }, lean: { greed: 2, cruelty: 1 },
+            log: 'He is on payroll now. His job title is "vibes." He has caused three diplomatic incidents and one excellent harvest. Net positive unclear; he refuses to clarify.' },
+          { label: 'Review the reviewer', lean: { wanderlust: 1 },
+            log: 'You read his 1-star review aloud. It was about a different bard. He leaves to find and fight that bard. You have accidentally started the Bard Wars.' },
+        ],
+      },
     },
     {
       id: 'refugees', weight: 2,
@@ -261,6 +350,18 @@
         { label: 'Rob them of what little they have', give: { shinies: 5, scrap: 6 }, lean: { cruelty: 3, greed: 2 },
           log: 'They had almost nothing. You took it anyway. A goblin learns early that "almost nothing" is still "something."' },
       ],
+      silly: {
+        title: 'Strangers At The Treeline (With A Pitch Deck)',
+        text: 'A ragged band of the tall folk, burned out by something worse than you, huddle at your wood\'s edge. Their leader has prepared a short slide presentation on why you should let them in.',
+        options: [
+          { label: 'Approve the pitch', cost: { mushrooms: 18 }, lean: { openness: 3 }, give: { scrap: 8 },
+            log: 'You let them stay. They are terrible in tunnels and terrified of the dark, but they can read, cook, and make slides. Loyal in the way only the rescued ever are.' },
+          { label: 'Ghost them professionally', lean: { cruelty: 1, greed: 1 },
+            log: 'You said "let\'s circle back" and never circled back. The wind that night sounded a little like an unanswered follow-up email.' },
+          { label: 'Acquire their startup for parts', give: { shinies: 5, scrap: 6 }, lean: { cruelty: 3, greed: 2 },
+            log: 'They had almost nothing. You took it as an "acqui-hire," minus the hire. A goblin learns early that "almost nothing" is still something.' },
+        ],
+      },
     },
     {
       id: 'plague', weight: 1, bad: true,
@@ -273,6 +374,16 @@
         { label: 'Let the strong survive', risk: 0.6, lean: { cruelty: 2 },
           log: 'You let the sickness run its course. The warren is leaner now, and harder, and quieter in a way you try not to think about.' },
       ],
+      silly: {
+        title: 'A Sickness In The Tunnels (Going Viral)',
+        text: 'A damp cough is trending through the warren. Goblins are hardy, but this one has real engagement numbers.',
+        options: [
+          { label: 'Throw shinies at the problem', cost: { shinies: 10 }, lean: { openness: 1 },
+            log: 'You bought bitter herbs from a road-witch and the cough lost its audience within days. Coin, it turns out, is a kind of mercy that comes with a receipt.' },
+          { label: 'Let the algorithm decide', risk: 0.6, lean: { cruelty: 2 },
+            log: 'You let the cough run its course. The warren is leaner now, harder, and notably quieter about the whole affair.' },
+        ],
+      },
     },
     {
       id: 'gambler', weight: 2,
@@ -287,6 +398,18 @@
         { label: 'Decline politely', lean: { openness: 1 },
           log: 'You waved the gambler off. A goblin who knows when not to bet is a rare and slightly suspicious thing.' },
       ],
+      silly: {
+        title: 'A Grinning Gambler (Definitely Normal Dice)',
+        text: 'A stranger with too many teeth rattles a cup of bone dice. "Double your shinies," he grins, "or lose the stake. Goblins LOVE a gamble, yes? The dice are normal. The dice are SO normal."',
+        options: [
+          { label: 'Bet 10 shinies (the dice are normal)', cost: { shinies: 10 }, lean: { greed: 1 }, gamble: { res: 'shinies', stake: 10 },
+            log: 'You rattled the definitely-normal bones. However it landed, the warren retold the tale for a week with steadily increasing inaccuracy.' },
+          { label: 'Flip the table (the dice were not normal)', give: { shinies: 4 }, lean: { cruelty: 2 },
+            log: 'You upended his table and pocketed a scatter of suspiciously weighted coins. He found a new wood to haunt with startling speed.' },
+          { label: 'Decline like a responsible adult', lean: { openness: 1 },
+            log: 'You waved him off. A goblin who knows when not to bet is rare, slightly suspicious, and almost certainly hiding something.' },
+        ],
+      },
     },
     {
       id: 'oldKnight', weight: 1,
@@ -301,6 +424,18 @@
         { label: 'Wish him luck and watch him go', lean: { wanderlust: 2 },
           log: 'You sent the old knight off to his doom or his glory. Either way, it was a good story, and good stories are their own kind of payment.' },
       ],
+      silly: {
+        title: 'An Old Knight\'s Side Quest',
+        text: 'A grey-bearded knight rides to your gate — not to fight, but to outsource. A monster he cannot solo is eating the next valley. He offers gold for goblin spears, and also "exposure."',
+        options: [
+          { label: 'Accept (gold only, keep the exposure)', give: { shinies: 18 }, risk: 0.2, lean: { openness: 2, cruelty: 1 },
+            log: 'Goblins and a knight, same monster, same side. It should be a joke. Instead it is a victory, a weird new respect, and a purse of honest gold.' },
+          { label: 'Eat the knight\'s horse instead', give: { mushrooms: 12 }, lean: { cruelty: 3 },
+            log: 'You took the horse, not the contract. The knight left on foot. The monster is presumably still hiring. Not your problem.' },
+          { label: 'Wish him luck, subscribe for updates', lean: { wanderlust: 2 },
+            log: 'You sent him off to doom or glory and asked him to write. It is a good story either way, and stories are their own kind of payment.' },
+        ],
+      },
     },
     {
       id: 'idol', weight: 1,
@@ -313,6 +448,16 @@
         { label: 'Recoil — this is not who I meant to be', lean: {}, _soften: true,
           log: 'You looked away from the Totem\'s mirror. A tale can still turn, you tell yourself. The road has forks yet.' },
       ],
+      silly: {
+        title: 'A Whisper From The Totem (Read Receipt On)',
+        text: 'The Totem of Tales has been muttering all night and has now, somehow, left you on read. At dawn it shows you exactly who you are becoming, and appends a single emoji you cannot interpret.',
+        options: [
+          { label: 'Lean in — yes, this is the brand', lean: {}, _amplify: true,
+            log: 'You looked into the Totem\'s mirror and grinned. Whatever you are becoming, you grabbed it with both hands and a rudimentary marketing plan.' },
+          { label: 'Recoil — this is NOT the brand', lean: {}, _soften: true,
+            log: 'You looked away from the mirror. A tale can still pivot, you tell yourself. The road has forks yet, and one of them surely has better optics.' },
+        ],
+      },
     },
   ];
 

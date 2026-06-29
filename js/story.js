@@ -18,6 +18,9 @@
   // --- tiny seeded-ish RNG helpers ------------------------------
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const chance = (p) => Math.random() < p;
+  // the Silliness Index (0..1) is just the probability that any given
+  // narrative draw comes from the SILLY register instead of the earnest one.
+  const silly = (s) => Math.random() < (s || 0);
 
   // --- generative grammar for the opening legend ----------------
   const GRAMMAR = {
@@ -43,12 +46,42 @@
     ],
   };
 
-  S.makeLegend = function () {
+  // parallel SILLY grammar — same slots, unhinged contents
+  const GRAMMAR_SILLY = {
+    name: ['Greg', 'Sir Reginald Mudbottom III (self-appointed)', 'Bingus', 'Princess Stabby',
+           'Gary, Destroyer of Brunch', 'Lord Snacc', 'The Goblin Formerly Known As Steve',
+           'Two Goblins In A Trenchcoat', 'Klaus the Inevitable', 'Beans'],
+    adj: ['legally distinct', 'aggressively normal', 'suspiciously confident', 'unlicensed',
+          'small but extremely loud about it', 'powered by spite and snacks',
+          'recently divorced (from a puddle)', 'far too online for a cave-dweller'],
+    origin: [
+      'woke up in a puddle with strong opinions about ownership',
+      'was voted "most likely to cause an incident" by a tribe that then fled',
+      'fell out of the plot of a different, better story',
+      'incorporated as a small business before learning to walk',
+      'found a spoon and a sense of purpose, in that order',
+      'escaped a tutorial and never once looked back',
+    ],
+    omen: [
+      'A crow began narrating, uninvited, and has not stopped since.',
+      'A nearby prophecy filed a formal complaint about you specifically.',
+      'The mushrooms unionized in your honour. Their demands are pending.',
+      'Somewhere a wizard sneezed your name and got it slightly wrong.',
+      'A coin landed on its edge, panicked, and rolled away forever.',
+    ],
+  };
+
+  // pick a grammar slot from the silly OR earnest pool, per the Index
+  function gslot(slot, sill) {
+    return pick((silly(sill) ? GRAMMAR_SILLY : GRAMMAR)[slot]);
+  }
+
+  S.makeLegend = function (sill) {
     return {
-      name: pick(GRAMMAR.name),
+      name: gslot('name', sill),
       intro:
-        `You are ${'#NAME#'}, a ${pick(GRAMMAR.adj)} goblin who ${pick(GRAMMAR.origin)}. ` +
-        pick(GRAMMAR.omen),
+        `You are ${'#NAME#'}, a ${gslot('adj', sill)} goblin who ${gslot('origin', sill)}. ` +
+        gslot('omen', sill),
     };
   };
 
@@ -90,6 +123,36 @@
     ],
   };
 
+  // parallel SILLY beats — same axis keys so the drift logic is identical
+  const BEATS_SILLY = {
+    neutral: [
+      'A goblin invented fire. Again. It is the fourth fire today. The other fires are jealous.',
+      'Two goblins started a band, broke up over creative differences, reunited, and broke up again, all before lunch.',
+      'A goblin filed for a vacation day. You do not offer vacation days. He took it anyway and came back with a tan and no explanation.',
+      'Someone keeps reorganizing the hoard alphabetically. The hoard does not have letters. They persist.',
+    ],
+    greed: [
+      'You opened a second hoard to hold the overflow from the first hoard. You are now considering a hoard for the hoards.',
+      'A goblin proposed a budget. You had him gently removed and the budget eaten.',
+      'You started charging admission to look at the big shiny. It is, frankly, doing numbers.',
+    ],
+    cruelty: [
+      'The tall folk made a "Most Wanted" poster of you. The likeness is unflattering. You have had it framed.',
+      'You instituted a reign of terror. It has a logo now. The logo is also, somehow, terrifying.',
+      'A captured knight begged for mercy. You offered him a punch card: ten raids, the eleventh mercy free.',
+    ],
+    openness: [
+      'An elf moved in and started a book club. The book club is now the most feared faction in three counties.',
+      'A dwarf taught the goblins accounting. They use it exclusively for revenge math.',
+      'You hosted a cultural exchange. A human left with mushroom recipes. You left with his entire personality.',
+    ],
+    wanderlust: [
+      'You packed for a journey, unpacked, then packed again. The bag has trust issues now.',
+      'A goblin returned with a map to somewhere amazing. The map is of here. You go anyway.',
+      'You stared dramatically at the horizon. The horizon stared back. It blinked first.',
+    ],
+  };
+
   // pick the dominant destiny axis from current stats
   function dominant(stats) {
     let best = 'neutral', bestV = 1.0; // need to beat a small threshold
@@ -99,12 +162,14 @@
     return best;
   }
 
-  // produce one ambient chronicle line, drifting toward the dominant stat
+  // produce one ambient chronicle line, drifting toward the dominant stat AND
+  // toward the Silliness Index (which register the line is drawn from).
   S.ambient = function (state) {
+    const pool = silly(state.silliness) ? BEATS_SILLY : BEATS;
     const dom = dominant(state.stats);
     // 65% chance to draw from the dominant pool, else neutral colour
-    if (dom !== 'neutral' && chance(0.65)) return pick(BEATS[dom]);
-    return pick(BEATS.neutral);
+    if (dom !== 'neutral' && chance(0.65)) return pick(pool[dom]);
+    return pick(pool.neutral);
   };
 
   // chapter heralds — short, grander lines when a chapter turns
@@ -116,8 +181,17 @@
     5: 'Chapter V. This is bigger than a warren. You can feel it wanting a name.',
     6: 'Chapter VI. Everything you\'ve done is about to decide what you become.',
   };
-  S.herald = function (chapterNum) {
-    return HERALDS[chapterNum] || `Chapter ${chapterNum}.`;
+  const HERALDS_SILLY = {
+    1: 'Chapter I. You have a hole. It is YOUR hole. This is, legally, still being contested by a badger.',
+    2: 'Chapter II. There are several of you now. This was nobody\'s plan, least of all yours.',
+    3: 'Chapter III. People beyond the wood now say "the goblins" with a capital G and a small, tired sigh.',
+    4: 'Chapter IV. You have a reputation now. It is, embarrassingly, mostly about the puddle.',
+    5: 'Chapter V. This is bigger than a warren. It wants a name. It is leaning, ominously, toward "Greg-topia."',
+    6: 'Chapter VI. The narrator crow has called in sick. You\'re on your own for this part. Try to make it weird.',
+  };
+  S.herald = function (chapterNum, sill) {
+    const pool = silly(sill) ? HERALDS_SILLY : HERALDS;
+    return pool[chapterNum] || HERALDS[chapterNum] || `Chapter ${chapterNum}.`;
   };
 
   // --- finale text, chosen by ending id -------------------------
@@ -143,7 +217,31 @@
       'You wanted "more." You got it, and then you got more than that. The goblin that loomed has no equal, and — this is the lonely part — no one left who isn\'t afraid.',
     ],
   };
-  S.finale = function (endingId) {
-    return FINALES[endingId] || ['Your tale ends, somehow.'];
+  // parallel SILLY finales — the satire is the whole joke, not a warning
+  const FINALES_SILLY = {
+    purist: [
+      'And so the Great Hall rose — goblins only, guest list strictly enforced.',
+      'You built a kingdom with an extremely specific door policy. Dave is still not invited. Dave, at this point, owns three kingdoms of his own. This is NOT about Dave. (It is, admittedly, a little about Dave.)',
+      'A nation united by a single idea, that idea being, essentially, "no." Historians are baffled. You are unavailable for comment, by design.',
+    ],
+    multirace: [
+      'And so the Great Hall rose, and the front door immediately fell off because everyone tried to come in at once.',
+      'Dwarves, elves, humans, two of the turnips, and a crow\'s lawyer all live here now. The plumbing is a documented war crime. It works anyway. A committee was formed to study why it works. The committee now also lives here.',
+      'You — a runt from a puddle — built a kingdom out of everyone the world misplaced. They threw you a parade. The parade got lost. It has since become a second, smaller, very happy kingdom.',
+    ],
+    chaos: [
+      'You never did raise the Great Hall. Hard to pour a foundation while committing this hard to a bit.',
+      'They still talk about the warband that arrives like weather and leaves like a punchline — a burned toll-bridge here, a liberated prison there, a duke\'s prized boots simply *gone*. No throne. No banner. Just the road, and the next ridiculous thing on it.',
+      'Legends need an ending. Yours filed for an extension. The road goes on, and you are, by a comfortable margin, the longest thing on it.',
+    ],
+    villain: [
+      'You did not build a kingdom. You became a recurring inconvenience of genuine historic scale.',
+      'Your weapon is mild chaos deployed at volume. Kings pay you NOT to reorganize their filing systems. Mothers use your name to make children eat their vegetables. You are a menace. You are, against all odds, thriving.',
+      'You wanted "more." You got it, and then you got a sequel. The goblin that loomed has no equal and — more importantly — no notes.',
+    ],
+  };
+  S.finale = function (endingId, sill) {
+    const pool = silly(sill) ? FINALES_SILLY : FINALES;
+    return pool[endingId] || FINALES[endingId] || ['Your tale ends, somehow.'];
   };
 })();
