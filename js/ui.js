@@ -249,8 +249,26 @@
     el.scrollTop = el.scrollHeight;
   }
 
+  // The UI re-renders ~4×/sec. The modal must only rebuild its innerHTML when
+  // its CONTENT actually changes — otherwise the .card entrance animation
+  // replays every frame (visible as a blinking / bobbing modal). We dedupe on
+  // the modal object's identity plus an affordability signature (which can flip
+  // while a choice is open as resources tick up).
+  let lastModalObj;          // undefined → forces the first render
+  let lastModalAfford = '';
+
   function renderModal(s) {
     const el = $('modal');
+    const obj = s.ending || s.pendingChoice || null;
+    let afford = '';
+    if (!s.ending && s.pendingChoice) {
+      afford = s.pendingChoice.options
+        .map((o) => (!o.cost || Game.canAfford(s, o.cost)) ? '1' : '0').join('');
+    }
+    if (obj === lastModalObj && afford === lastModalAfford) return; // unchanged → leave the DOM alone
+    lastModalObj = obj;
+    lastModalAfford = afford;
+
     if (s.ending) {
       el.style.display = 'flex';
       el.innerHTML = `<div class="card ending">
@@ -268,13 +286,13 @@
       const pc = s.pendingChoice;
       el.style.display = 'flex';
       const opts = pc.options.map((o, i) => {
-        const afford = !o.cost || Game.canAfford(s, o.cost);
+        const ok = !o.cost || Game.canAfford(s, o.cost);
         const costStr = o.cost
-          ? ` <span class="ocost ${afford ? '' : 'short'}">(${Object.entries(o.cost)
+          ? ` <span class="ocost ${ok ? '' : 'short'}">(${Object.entries(o.cost)
               .filter(([res]) => GG.RESOURCES[res])  // ignore unknown resource keys
               .map(([res, n]) => fmt(n) + GG.RESOURCES[res].sym).join(' ')})</span>`
           : '';
-        return `<button class="act" data-act="choice" data-i="${i}" ${afford ? '' : 'disabled'}>${esc(o.label)}${costStr}</button>`;
+        return `<button class="act" data-act="choice" data-i="${i}" ${ok ? '' : 'disabled'}>${esc(o.label)}${costStr}</button>`;
       }).join('');
       el.innerHTML = `<div class="card">
         <h1>${esc(pc.title)}</h1>
