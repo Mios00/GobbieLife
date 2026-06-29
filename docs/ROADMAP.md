@@ -36,6 +36,12 @@ world: an **adventure pathway**, **per-faction reputation**, **inbound threats
 - **Adventure cadence:** real-time expeditions (minutes), like longer zoned raids.
 - **Death stakes:** permadeath possible (gear lost or inherited); most outcomes are wounds.
 
+### Story spine (locked) — see the Story Bible below
+6. **Spine = "The Bargain."** The procedural origin omens are the *plot*: a hidden hand (the Witch) set the runt on this path, and the endgame is the price of "more" coming due.
+7. **The finale is a multi-act *Reckoning*,** not an instant ending. The Great Hall (or a path-specific monument) *triggers* it; the ending is earned at the end of the act.
+8. **Four destiny climaxes** (one story, four lenses). **The Mirror = both** a goblin-hunter hero *and* the Snaggletooth rival.
+9. **The Final Choice is player-chosen** (destiny/deeds gate which doors open) and is framed around **mortality**: the protagonist ages and dies. Let go / grip tighter / seek immortality / die well. **Twisty, scaled by the Silliness Index.** Dynasty continuation is a stretch (E7).
+
 ---
 
 ## Architecture conventions (keep new systems consistent)
@@ -74,6 +80,102 @@ world: an **adventure pathway**, **per-faction reputation**, **inbound threats
 4. **Heroes: skills / levels / gear** — RPG progression for notable goblins.
 5. **Inbound threats** — adventurer duels, then kingdom wars.
 6. **World news & disasters** — overheard events, some with consequences.
+7. **Endgame & Story** — the Reckoning, mortality & succession, the Bargain payoff.
+
+---
+
+## Story Bible (endgame canon — keep all endgame content consistent with this)
+
+**Spine — The Bargain.** The procedural origin omens (the witch's tooth-for-"more",
+the map with *your* name, the watching crows, the king who "felt cold") are the
+**plot**, not flavour. Your rise was foretold/engineered by a hidden hand — **the
+Witch**. The endgame pays it off: the price of "more" comes due, and you choose to
+**pay it, break it, or turn it back on its maker**. The Oracle's riddles are
+*clues*, seeded across the game.
+
+**One story, four lenses.** Write ONE skeleton, reinterpreted by dominant destiny:
+
+| | Pure Warren | Motley Kingdom | Endless Road | The Loom |
+|---|---|---|---|---|
+| The Witch is… | a purifier who armed you | a trickster testing you | a fellow wanderer | a tempter offering apotheosis |
+| "More" means | a wall high enough | a table long enough | a horizon with no edge | a world that kneels |
+| The Reckoning is | the Coalition's siege | betrayal at the Congress | the Last Ride / offered throne | the world's final crusade |
+| The final cost | who you kept out | who you must forgive | what you'll never have | who's left unafraid |
+
+**Recurring cast.** The **Witch** (hidden hand, ambiguous mentor/puppeteer). The
+**Mirror = BOTH** a goblin-hunter hero (survived your very first raid, returns
+escalating) AND the **Snaggletooth chief** (dark-twin rival). One **elevated
+notable** (your right hand → climactic betrayal or sacrifice; uses the existing
+roster + permadeath). The **Oracle/Totem** (guide… or user?).
+
+**Two clocks.** The **Comet / Prophesied Year** (world doom — a long countdown
+seeded by your origin omens) and **your Age** (personal doom). The drama is
+spending your remaining time before either runs out.
+
+**The Final Choice** (player-chosen; destiny + deeds + Hold gate which doors open):
+- **Let go** — name an heir & abdicate. Heir's *personality* drifts the kingdom; warm legacy epilogue.
+- **Grip tighter** — no heir, purge rivals. Power now; rising **Resentment** → revolt/betrayal; die un-succeeded → the realm fractures.
+- **Seek immortality** — a flavoured pact, each a monkey's-paw: the **Witch** (bound to her design), **Mournhollow** (lich/necropolis), **Ssirvax** (become dragon), **Aelinvar** (alien long-life), or **the Totem** (*become the Oracle*).
+- **Die well** — a mortal sacrifice that secures the tale (the defiant **"Tale Untold"**).
+
+**Signature twists.** Origin-omen payoff; **become-the-Oracle** (the riddling voice
+you've read all game was a past goblin who chose this — new runs hear *you*); a
+groomed heir/notable betrays or falls; **false victory** (raise the Hall, celebrate,
+then the *real* threat arrives).
+
+**Hold & succession.** **Hold** = *fear-grip* (built on cruelty; stable while
+strong, brittle) vs *loyalty* (openness/generosity/victories; resilient, survives
+your death). Betrayal odds = low Hold × high cruelty × old age. Heirs emerge from
+notables; succession crises (rival claimants, heir death on adventure).
+
+**Endings.** 4 destiny finales × mortality-response flavour + 5 immortality
+flavours + the secret **Tale Untold** + **personalised epilogues** (which factions,
+which notables survived, the heir's nature, the city tier, the Silliness Index).
+
+---
+
+## Phase E — Endgame & Story Arcs  *(story track — runs parallel to the world phases)*
+
+> **Sequencing:** **E1 is high priority — build it before deep Adventure work**,
+> because a multi-act finale re-paces everything. Then E2 (mortality) → E3
+> (Hold/succession) → E4 (the Reckoning ties them together). E5–E6 are
+> content-heavy and can interleave with Phases 1–4. E7 is a stretch.
+
+- [ ] **E1 — Finale → multi-act Reckoning (scaffold)**
+  - Goal: the Great Hall *triggers* an endgame act instead of ending instantly.
+  - Scope: `s.endgame = { active, stage, started }`. Building the Great Hall (or a path monument) sets `unlocks.finale` and **begins The Reckoning** — a staged sequence (`tickReckoning` or chapter-acts VII+) that advances through beats and ends by calling the (relocated) `Game.finish`. Keep a placeholder 2–3 stage sequence for now; E4/E5 fill it with content.
+  - Accept: building greatHall no longer ends the game immediately; an endgame state starts, advances through stages, and only *then* resolves to an ending; save/sanitize/migrate for `s.endgame`; tests.
+  - Deps: none.
+- [ ] **E2 — Protagonist mortality + the two clocks**
+  - Goal: you age and will die; the world has its own countdown.
+  - Scope: `s.age`, `s.lifespan` (long, randomised; ages only during active play, not offline), `s.renown`. `s.comet` (long countdown seeded at start / by omens) surfaced via Oracle + news. As age nears lifespan, a "twilight" pressure; protagonist death with no succession plan force-triggers the Reckoning/an ending.
+  - Accept: age advances, lifespan exists, comet counts down, both surfaced in UI; death is handled (not a silent stop); sanitize/migrate; tests.
+  - Deps: E1.
+- [ ] **E3 — Hold (grip) + succession**
+  - Goal: the power/legacy dilemma as a living system.
+  - Scope: `s.hold` (fear vs loyalty composition from cruelty/openness/deeds), `s.heir` (chosen from notables), `s.resentment`. Name-an-heir action; revolt/betrayal rolls (low hold × cruelty × age); succession crises (rival claimant, heir can die on adventure). UI in the Notables/Standing area.
+  - Accept: hold responds to deeds; can name/replace an heir; betrayal risk computed; heir death handled; sanitize/migrate; tests.
+  - Deps: E2, notables.
+- [ ] **E4 — The Reckoning content + the Final Choice**
+  - Goal: the climactic act, ending in *your* choice.
+  - Scope: staged Reckoning (rising world tension, the Oracle's last prophecy, the Bargain reveal) → present **the Final Choice** from only the doors unlocked by destiny + Hold + deeds (let go / grip / immortality / die well) → resolve to the correct ending. Replace auto-assignment in `Game.finish` with the chosen outcome.
+  - Accept: Reckoning plays as stages; Final Choice offers only valid options; each resolves to its ending; tests for gating + resolution.
+  - Deps: E1, E2, E3.
+- [ ] **E5 — Destiny climaxes + recurring cast**
+  - Goal: the four unique climaxes and the people who make them personal.
+  - Scope: per-destiny climax content (Coalition siege / Congress betrayal / Last Ride / Final Crusade) selected by dominant destiny; the **Mirror** (hero + Snaggletooth) recurring across acts and appearing at the climax; **Witch** appearances; **origin-omen payoff** referencing this run's specific intro. Earnest + silly registers.
+  - Accept: destiny-appropriate climax surfaces; the Mirror recurs and shows at the Reckoning; the run's origin omen is paid off; tests. *(Large — may split per-destiny.)*
+  - Deps: E4, T0.1 (factions).
+- [ ] **E6 — Immortality pacts + endings expansion + epilogues**
+  - Goal: the full ending bouquet and personalised send-offs.
+  - Scope: the 5 immortality pacts (Witch/Mournhollow/Ssirvax/Aelinvar/become-the-Oracle), the secret **Tale Untold**, and **epilogues** assembled from run state (factions' fates, surviving notables, heir's nature, city tier, Silliness). The become-the-Oracle pact should canonically explain the Oracle voice.
+  - Accept: each immortality ending reachable + gated; secret ending gated; epilogue reflects specifics; tests.
+  - Deps: E4, E5.
+- [ ] **E7 — (stretch) Dynasty / generational continuation**
+  - Goal: the tale need not end at your death.
+  - Scope: on a clean mortal succession, optionally **continue** — the heir inherits world state (standing, notables, factions, city), the founder is recorded as a remembered legend, and a fresh personal arc/age begins. A soft New Game+ *within the same world*.
+  - Accept: post-succession continuation carries world state forward; founder logged as legend; new arc starts; tests.
+  - Deps: E3, E6.
 
 ---
 
@@ -155,5 +257,6 @@ world: an **adventure pathway**, **per-faction reputation**, **inbound threats
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-29 — **Story design** — added the Story Bible (The Bargain spine, one-story-four-lenses, recurring cast, two clocks, the Final Choice, mortality & succession, become-the-Oracle, endings) and **Phase E** (E1–E7) endgame/story tasks.
 - 2026-06-29 — **T0.1** — Factions data model (11 factions), per-faction standing + tiers, gradual discovery (chapter-driven for now), sanitize/migrate, 24 tests.
 - _(append: date — task id — one line, as tasks are completed)_
