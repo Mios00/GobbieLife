@@ -5,10 +5,11 @@ world: an **adventure pathway**, **per-faction reputation**, **inbound threats
 (duels & wars)**, and **world news / disasters**.
 
 > **For future sessions:** this file is the source of truth for what to build
-> next. Pick the **first unchecked task** whose dependencies are all checked,
-> implement it end-to-end (data + logic + UI + tests), tick its box, and append
-> a one-line note under it. Keep tasks one-cycle-sized; if a task feels bigger
-> than a single session, split it and update this file.
+> next. Follow the **Blended build order** below (it already interleaves the
+> world track `T*` and the story track `E*`) — take the first unchecked item
+> whose dependencies are met, implement it end-to-end (data + logic + UI +
+> tests), tick its box, append a one-line note, and add a changelog entry. Keep
+> tasks one-cycle-sized; if a task feels bigger than a single session, split it.
 
 ---
 
@@ -81,6 +82,42 @@ world: an **adventure pathway**, **per-faction reputation**, **inbound threats
 5. **Inbound threats** — adventurer duels, then kingdom wars.
 6. **World news & disasters** — overheard events, some with consequences.
 7. **Endgame & Story** — the Reckoning, mortality & succession, the Bargain payoff.
+
+---
+
+## Blended build order  *(the world track `T*` and story track `E*`, interleaved)*
+
+This is the recommended single sequence. The two tracks are **not** done one after
+the other — story is woven through world-building so the finale grows alongside the
+world it pays off. (Dependencies in each task still apply; this order respects them.)
+
+1. [x] **T0.1** — Factions, standing & gradual discovery ✅
+2. [ ] **T0.2** — Standing panel + deeds move standing
+3. [ ] **T0.3** — World news feed (flavor; also a discovery vector)
+4. [ ] **E1** — Finale → multi-act Reckoning scaffold  *(restructure the endgame early)*
+5. [ ] **E2** — Protagonist mortality + the two clocks
+6. [ ] **E3** — Hold (grip) + succession
+7. [ ] **T1.1** — Adventure zones + panel scaffold
+8. [ ] **T1.2** — Expeditions (send party, real-time, resolve)
+9. [ ] **T1.3** — Party strength & risk model
+10. [ ] **E4** — The Reckoning content + the Final Choice  *(mortality + adventure now give it stakes)*
+11. [ ] **T2.1** — Hero progression (XP & levels)
+12. [ ] **T2.2** — Equipment & inventory
+13. [ ] **T3.1** — Higher zones gated by standing
+14. [ ] **T3.2** — Beasts & bosses
+15. [ ] **E5** — Destiny climaxes + recurring cast (the Mirror, the Witch, origin payoff)
+16. [ ] **T4.1** — Notoriety meter
+17. [ ] **T4.2** — Adventurer challengers (duels)
+18. [ ] **T5.1** — Defense layer
+19. [ ] **T5.2** — War declarations
+20. [ ] **T5.3** — Siege resolution
+21. [ ] **E6** — Immortality pacts + endings + epilogues  *(capstone, once threats/wars exist)*
+22. [ ] **T6.1** — Disasters with consequences
+23. [ ] **T6.2** — World simulation polish
+24. [ ] **E7** — (stretch) Dynasty / generational continuation
+- *Slot in when convenient:* **T2.3** (adventure materials), **T3.3** (rich loot tables).
+
+> Detailed scope/acceptance for each item lives in its phase section below.
 
 ---
 
@@ -257,6 +294,7 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-29 — **Build order** — added a single Blended build order interleaving the world track (T*) and story track (E*); story is woven through, not appended after.
 - 2026-06-29 — **Story design** — added the Story Bible (The Bargain spine, one-story-four-lenses, recurring cast, two clocks, the Final Choice, mortality & succession, become-the-Oracle, endings) and **Phase E** (E1–E7) endgame/story tasks.
 - 2026-06-29 — **T0.1** — Factions data model (11 factions), per-faction standing + tiers, gradual discovery (chapter-driven for now), sanitize/migrate, 24 tests.
 - _(append: date — task id — one line, as tasks are completed)_
