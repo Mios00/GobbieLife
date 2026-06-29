@@ -162,9 +162,24 @@
     return best;
   }
 
+  // passage-of-time beats — give the Chronicle a felt sense of seasons turning
+  // and a warren that ages. Drawn occasionally regardless of stat/silliness.
+  const TIMEBEATS = [
+    'Seasons turn. The mushrooms go to spore and come again. The warren marks another year in notches no one can quite read.',
+    'A whole generation of goblins grows up never having seen the flooded hole you started in. To them, this was always home.',
+    'Winter presses down. The tribe huddles deep, tells the old stories badly, and waits for the dark to thin.',
+    'An elder goblin dies in his sleep, full of years and stolen soup. The warren is quiet for a day, then loud again.',
+    'The first frost. The last raiders of the season trudge home, and the gates are barred against the cold.',
+    'Rain for a week straight. The young goblins invent six new games and exactly one new blood-feud.',
+    'A goblin who left long ago wanders back — grey now, full of road-stories. The little ones follow him everywhere.',
+    'Spring floods the low tunnels again. You move the stores higher, swear at the water, and carry on. You always carry on.',
+    'Someone scratches a tally of the dead and the born onto the deep wall. The born are winning. Barely. For now.',
+  ];
+
   // produce one ambient chronicle line, drifting toward the dominant stat AND
   // toward the Silliness Index (which register the line is drawn from).
   S.ambient = function (state) {
+    if (chance(0.16)) return pick(TIMEBEATS);  // occasional sense of time passing
     const pool = silly(state.silliness) ? BEATS_SILLY : BEATS;
     const dom = dominant(state.stats);
     // 65% chance to draw from the dominant pool, else neutral colour
@@ -243,5 +258,58 @@
   S.finale = function (endingId, sill) {
     const pool = silly(sill) ? FINALES_SILLY : FINALES;
     return pool[endingId] || FINALES[endingId] || ['Your tale ends, somehow.'];
+  };
+
+  // --- the Oracle ----------------------------------------------
+  // The Totem never names your destiny outright — it speaks in riddles, the way
+  // the oracles of old did: a true thing wrapped in a knot. Riddles are drawn
+  // weighted by your dominant hidden stat, so a careful listener feels the drift
+  // without ever being told the number.
+  const ORACLES = {
+    greed: [
+      'The Totem stirs: "A hoard so bright it throws a shadow shaped like a throne — or a tomb. The dragon and the king are buried in the same gold."',
+      'It murmurs of a road paved in coins that always bends back to your own door, and of a hand that closes well but has forgotten how to open.',
+      'It shows you a scale: on one pan, everything you own; on the other, a single empty chair, and the scale will not stop tilting toward the chair.',
+    ],
+    cruelty: [
+      'The Totem speaks low: "They will carve your face above their gates — not in love, but so the children behave. A name said only in the dark grows teeth."',
+      'It shows a crown of cold iron that fits too well, and the long silence after, where the cheering should have been.',
+      'It whispers of a wall built so high to keep the wolves out that, one morning, you cannot remember which side of it the wolves were on.',
+    ],
+    openness: [
+      'The Totem hums warm: "Many hands, and not one of them green, raising the same roof. The stranger you feed at your fire becomes the wall at your back."',
+      'It shows a gate left open on purpose, and a city that grew because of it, and no one — not even you — quite able to say whose city it is.',
+      'It speaks of a table that lengthens every time someone new sits down, and never, somehow, runs short of bread.',
+    ],
+    wanderlust: [
+      'The Totem rattles like wind in a dry tree: "Your map has no edge — only the next ridge, and the next. A door is just a wall that admitted it was wrong."',
+      'It shows footprints that lead away and never circle back, and a tale with no last page, and you, laughing, already over the next hill.',
+      'It murmurs that a home you can carry is the only one no one can take — and that you have been packing your whole life.',
+    ],
+    neutral: [
+      'The Totem is quiet tonight. "Too soon," it seems to say. "The clay is still wet. Come back when your hands have decided what they are."',
+      'It shows four roads spilling from one door, and your own long shadow standing at the crossing — not yet turned, not yet anything.',
+      'It offers only this: "Every legend looks like an accident until the last line. Keep going. The knot ties itself."',
+    ],
+  };
+  S.oracle = function (state) {
+    const dom = dominant(state.stats);
+    return pick(ORACLES[dom] || ORACLES.neutral);
+  };
+
+  // --- the settlement, as it grows (cave → city) ----------------
+  // A purely-derived "what does the place LOOK like now" readout. Tier is chosen
+  // in game.js from settle + buildings + peak population; this is the flavour.
+  const SETTLEMENTS = [
+    { name: 'A Damp Hole',     art: '·.( o ).·',            desc: 'One goblin, one hole in the world. It is not much. It is, technically, a start.' },
+    { name: 'A Warren',        art: '∩  ∩  ∩',              desc: 'A scatter of burrows in the dark — smoke, squabbles, and the warm reek of mushroom stew.' },
+    { name: 'A Cave Camp',     art: '▲ ∩ ▲ ∩ ▲',            desc: 'Hide tents and cook-fires spill past the cave mouth. The tribe has tasted daylight, and likes it.' },
+    { name: 'A Crooked Village', art: '▲ ⌂ ∩ ⌂ ▲ ∩',        desc: 'Lopsided huts line a muddy market road. Travellers slow down to stare, then stay to haggle.' },
+    { name: 'A Goblin Town',   art: '⌂ ⌂ ╫ ⌂ ⌂ ╫ ⌂',        desc: 'Palisades, a real road, the clang of trade. The word "goblin" now comes with a capital G.' },
+    { name: 'A Stronghold',    art: '⌂╫⌂ ▮▮ ⌂╫⌂ ▮',         desc: 'Walls of timber and spite, banners snapping. Other folk queue at the gate now — to deal, or to beg.' },
+    { name: 'A Goblin City',   art: '▮⌂╫⌂▮ ╪ ▮⌂╫⌂▮',        desc: 'A sprawling, lamp-lit city — loud, strange, and gloriously alive. From a flooded hole to THIS. You did that.' },
+  ];
+  S.settlement = function (tier) {
+    return SETTLEMENTS[Math.max(0, Math.min(SETTLEMENTS.length - 1, tier | 0))];
   };
 })();

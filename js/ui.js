@@ -27,9 +27,10 @@
     renderHeader(s);
     renderResources(s);
     renderGoblins(s);
+    renderNotables(s);
     renderActions(s);
     renderBuild(s);
-    renderDestiny(s);
+    renderOracle(s);
     renderAnnals(s);
     renderChronicle(s);
     renderModal(s);
@@ -110,11 +111,48 @@
       </div>`;
     };
 
+    // settlement vista — "what does the place look like now?" + who lives here
+    const v = GG.Story.settlement(Game.settlementTier(s));
+    const comp = [`${s.population} goblin${s.population === 1 ? '' : 's'}`];
+    for (const rc in (s.races || {})) {
+      const n = s.races[rc]; const d = GG.RACES[rc];
+      if (n > 0 && d) comp.push(`${n} ${d.sym} ${n === 1 ? d.one : d.name.toLowerCase()}`);
+    }
+    const vista = `<div class="vista">
+      <pre class="vart">${esc(v.art)}</pre>
+      <div class="vname">${esc(v.name)}</div>
+      <div class="vdesc">${esc(v.desc)}</div>
+      <div class="vcomp">${esc(comp.join('   ·   '))}</div>
+    </div>`;
+
     $('goblins').innerHTML =
-      `<h2>Tribe <span class="cap">${s.population}/${cap}</span></h2>
+      `${vista}
+       <h2>Tribe <span class="cap">${s.population}/${cap}</span></h2>
        <div class="idle">Idle goblins: <b>${idle}</b></div>
        ${jobRow('forage')}${jobRow('dig')}${jobRow('raid')}
        ${breed}`;
+  }
+
+  function renderNotables(s) {
+    const el = $('notables');
+    if (!el) return;
+    const list = s.notables || [];
+    if (!list.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+    el.style.display = '';
+    const ageWord = (nb) => {
+      const r = nb.age / Math.max(1, nb.life);
+      return r < 0.25 ? 'Young' : r < 0.6 ? 'Seasoned' : r < 0.85 ? 'Old' : 'Ancient';
+    };
+    const adjOf = (id) => {
+      const t = (GG.NOTABLE.traits || []).find((x) => x.id === id);
+      return t ? t.adj : '';
+    };
+    const rows = list.map((nb) => `<div class="nrow">
+        <span class="nmark">☗</span>
+        <span class="ntext"><b>${esc(nb.name)} ${esc(nb.role)}</b><span class="ndesc">${esc(adjOf(nb.trait))} · ${ageWord(nb)}</span></span>
+      </div>`).join('');
+    el.innerHTML = `<h2>Notable Goblins <span class="cap">${list.length}/${Game.notableCap(s)}</span></h2>${rows}
+      <div class="hint">They live, squabble, age, and pass on. Watch the Chronicle for their deeds.</div>`;
   }
 
   function renderActions(s) {
@@ -153,6 +191,8 @@
 
     for (const id in GG.BUILDINGS) {
       const def = GG.BUILDINGS[id];
+      // gradual reveal: hide the option entirely until the tribe has grown enough
+      if (!Game.buildingRevealed(s, id)) continue;
       const lvl = s.buildings[id];
       const single = Game.buildingCost(s, id); // null when maxed
       const maxed = !single;
@@ -189,6 +229,9 @@
         <div class="bblurb">${esc(def.blurb)}</div>${lockMsg}
       </div>`;
     }
+    // teaser so the gradual reveal doesn't feel like a dead end
+    const moreToCome = Object.keys(GG.BUILDINGS).some((id) => !Game.buildingRevealed(s, id));
+    if (moreToCome) html += `<div class="hint moreBuild">The warren whispers of more to build as it grows…</div>`;
     $('build').innerHTML = html;
   }
 
@@ -198,55 +241,64 @@
     return map[unlock] || 'right building';
   }
 
-  function renderDestiny(s) {
+  // The Totem no longer shows a numeric destiny meter — it speaks the Oracle:
+  // a riddle that hints where you're heading without ever naming it.
+  function renderOracle(s) {
     const el = $('destiny');
     if (!s.unlocks.destiny) { el.innerHTML = ''; el.style.display = 'none'; return; }
     el.style.display = '';
-    const d = Game.destiny(s);
-    const total = Object.values(d.scores).reduce((a, b) => a + b, 0) || 1;
-    const labels = { purist: 'Pure Warren', multirace: 'Motley Kingdom', chaos: 'Endless Road', villain: 'The Loom' };
-    let bars = '';
-    for (const id in d.scores) {
-      const pct = Math.round((d.scores[id] / total) * 100);
-      bars += `<div class="drow">
-        <span class="dname ${id === d.lead ? 'lead' : ''}">${labels[id]}</span>
-        <div class="bar dbar"><span style="width:${pct}%"></span></div>
-        <span class="dpct">${pct}%</span>
-      </div>`;
-    }
-    el.innerHTML = `<h2>Destiny <span class="cap">whispered by the Totem</span></h2>${bars}
-      <div class="hint">Your deeds tilt the tale. No one chose this but you — and you didn't quite mean to.</div>`;
+    const body = s.lastOracle
+      ? `<div class="oracle">${esc(s.lastOracle)}</div>`
+      : `<div class="hint">The Totem is listening. It has not yet decided what to say of you.</div>`;
+    el.innerHTML = `<h2>The Oracle <span class="cap">the Totem's riddle</span></h2>${body}
+      <div class="hint">It will never name your destiny outright. Listen — and decide what you hear.</div>`;
   }
 
   function renderAnnals(s) {
     const list = GG.ACHIEVEMENTS || [];
-    const earned = list.filter((a) => s.achievements[a.id]).length;
-    let rows = '';
-    for (const a of list) {
-      const got = !!s.achievements[a.id];
-      const hide = a.secret && !got;
-      const name = hide ? '???' : a.name;
-      const desc = hide ? 'A secret deed, yet to be done.' : a.desc;
-      rows += `<div class="arow ${got ? 'got' : ''}">
-        <span class="amark">${got ? '✦' : '·'}</span>
-        <span class="atext"><b>${esc(name)}</b><span class="adesc">${esc(desc)}</span></span>
-      </div>`;
-    }
+    const earned = list.filter((a) => s.achievements[a.id]);
+    const remaining = list.length - earned.length;
+    // only EARNED deeds are shown — locked ones stay hidden until you do them
+    let rows = earned.map((a) => `<div class="arow got">
+        <span class="amark">✦</span>
+        <span class="atext"><b>${esc(a.name)}</b><span class="adesc">${esc(a.desc)}</span></span>
+      </div>`).join('');
+    if (!earned.length) rows = `<div class="hint">No deeds yet. Your legend is unwritten.</div>`;
+    const footer = remaining > 0
+      ? `<div class="hint">${remaining} more deed${remaining === 1 ? '' : 's'} wait to be earned…</div>`
+      : `<div class="hint">Every deed earned. A complete legend.</div>`;
     $('annals').innerHTML =
-      `<h2>Annals <span class="cap">${earned}/${list.length}</span></h2>${rows}`;
+      `<h2>Annals <span class="cap">${earned.length}/${list.length}</span></h2>${rows}${footer}`;
   }
 
+  // Only rebuild the Chronicle when a new entry actually arrives, and never
+  // yank the scroll position — otherwise the ~4×/sec re-render snapped the view
+  // back to the bottom and you couldn't read history. We auto-follow only when
+  // you're already pinned to the bottom; if you've scrolled up, we leave you there.
+  let lastChronState = null, lastChronSig = null;
   function renderChronicle(s) {
+    const el = $('chronicle');
+    // a brand-new tale (or imported save) is a different state object — force a
+    // repaint so the prior game's dedup key can't suppress the first render.
+    if (s !== lastChronState) { lastChronState = s; lastChronSig = null; }
+    // key on the monotonic entry counter (never collides — not on timestamps or
+    // text), plus a fallback to length for legacy saves without the counter.
+    const count = s.chronCount != null ? s.chronCount : s.chronicle.length;
+    const sig = count + '|' + (s.legendIntro ? 1 : 0);
+    if (sig === lastChronSig) return;                      // nothing new → don't touch the DOM/scroll
+    const firstPaint = lastChronSig === null;
+    const atBottom = firstPaint || (el.scrollHeight - el.scrollTop - el.clientHeight) < 28;
+    const prevTop = el.scrollTop;
+    lastChronSig = sig;
+
     let html = '<h2>Chronicle</h2>';
     if (s.legendIntro) html += `<div class="cintro">${esc(s.legendIntro)}</div>`;
-    const recent = s.chronicle.slice(-40);
-    html += recent.map((c) => {
+    html += s.chronicle.map((c) => {                       // show the full stored history (up to 200)
       const grand = c.msg.startsWith('—') || c.msg.startsWith('═');
       return `<div class="centry ${grand ? 'grand' : ''}">${esc(c.msg)}</div>`;
     }).join('');
-    const el = $('chronicle');
     el.innerHTML = html;
-    el.scrollTop = el.scrollHeight;
+    el.scrollTop = atBottom ? el.scrollHeight : prevTop;   // follow if pinned, else keep your place
   }
 
   // The UI re-renders ~4×/sec. The modal must only rebuild its innerHTML when
