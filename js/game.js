@@ -58,6 +58,7 @@
       chronicle: [],
       chronCount: 0,       // monotonic entry counter (UI dedup key)
       lastOracle: null,    // most recent Oracle riddle (shown in place of a destiny meter)
+      endgame: { active: false, stage: 0, accum: 0 }, // The Reckoning (endgame act)
       ending: null,        // set when game is finished
       log: [],             // short transient action feedback
     };
@@ -286,7 +287,7 @@
 
     // first-time-built gets a chronicle beat
     if (s.buildings[id] === 1) chronicle(s, firstBuildLine(id));
-    if (id === 'greatHall') Game.finish(s);
+    if (id === 'greatHall') Game.beginReckoning(s); // begins the endgame act, not an instant end
     return true;
   }
 
@@ -660,8 +661,33 @@
     return { scores, lead };
   };
 
+  // ---- the Reckoning (endgame act) -----------------------------
+  // Raising the Great Hall begins a staged climactic act instead of ending the
+  // game on the spot. For now it auto-advances through placeholder beats and
+  // then resolves the ending; E4 will pause here for the player's Final Choice,
+  // and E5 will make the beats destiny-specific.
+  Game.beginReckoning = function (s) {
+    if (s.ending) return;
+    if (!s.endgame) s.endgame = { active: false, stage: 0, accum: 0 };
+    if (s.endgame.active) return;
+    s.endgame.active = true; s.endgame.stage = 0; s.endgame.accum = 0;
+    s.unlocks.finale = true;
+    chronicle(s, GG.Story.reckoningBeat(0, s.silliness));
+  };
+  function tickReckoning(s, dt) {
+    if (!s.endgame || !s.endgame.active || s.ending) return;
+    s.endgame.accum += dt;
+    if (s.endgame.accum < (C.reckoningStageSec || 18)) return;
+    s.endgame.accum = 0;
+    s.endgame.stage += 1;
+    const beat = GG.Story.reckoningBeat(s.endgame.stage, s.silliness);
+    if (beat != null) chronicle(s, beat);
+    else Game.finish(s); // out of beats → resolve (E4 will insert the Final Choice here)
+  }
+
   // ---- finale ---------------------------------------------------
   Game.finish = function (s) {
+    if (s.endgame) s.endgame.active = false;
     const d = Game.destiny(s);
     const id = d.lead || 'chaos';
     s.ending = { id, name: GG.ENDINGS[id].name, text: GG.Story.finale(id, s.silliness) };
@@ -683,6 +709,7 @@
     tickOracle(s, dtSec);
     tickWorldNews(s, dtSec);
     tickNotables(s, dtSec);
+    tickReckoning(s, dtSec);
     tickEvents(s, dtSec);
     const tp = Game.totalPop(s);
     if (tp > (s.peakPop || 0)) s.peakPop = tp; // peak whole-tribe size gates building reveals
@@ -838,6 +865,9 @@
     m.name = str(m.name, base.name);
     m.legendIntro = str(m.legendIntro, base.legendIntro);
     m.lastOracle = (m.lastOracle == null) ? null : str(m.lastOracle, '');
+    // the Reckoning act state
+    const eg = (m.endgame && typeof m.endgame === 'object') ? m.endgame : {};
+    m.endgame = { active: bool(eg.active), stage: intNonneg(eg.stage), accum: nonneg(eg.accum) };
     m.log = Array.isArray(m.log) ? m.log.filter((x) => typeof x === 'string').slice(0, 4) : [];
     m.chronicle = Array.isArray(m.chronicle)
       ? m.chronicle.filter((c) => c && typeof c.msg === 'string')

@@ -41,10 +41,12 @@
     const chap = s.chapter > 0 && GG.CHAPTERS[s.chapter - 1]
       ? GG.CHAPTERS[s.chapter - 1].title : 'Prologue';
     const pct = Math.round((s.silliness || 0) * 100);
+    const reckon = (s.endgame && s.endgame.active && !s.ending)
+      ? ` &nbsp;·&nbsp; <span class="reckon" title="The endgame act is underway">⚔ The Reckoning</span>` : '';
     $('hdr').innerHTML =
       `<div class="title">GOBLIN <span class="sub">— a tale of growth &amp; shenanigans</span></div>
        <div class="meta"><b>${esc(s.name)}</b> &nbsp;·&nbsp; ${esc(chap)}
-         &nbsp;·&nbsp; <span class="silly" title="The Silliness Index you set at the start">Silliness ${pct}% · ${esc(UI.sillyTier(s.silliness))}</span></div>`;
+         &nbsp;·&nbsp; <span class="silly" title="The Silliness Index you set at the start">Silliness ${pct}% · ${esc(UI.sillyTier(s.silliness))}</span>${reckon}</div>`;
   }
 
   // shared tier naming + flavor for the Silliness Index (0..1)

@@ -16,6 +16,7 @@
     ambientStoryEverySec: 45, // ambient chronicle entry cadence (faster = richer history)
     oracleEverySec: 100,     // how often the Totem utters an Oracle riddle
     worldNewsEverySec: 130,  // how often a caravan/wanderer brings news of the wider world
+    reckoningStageSec: 18,   // seconds between beats of the endgame act (The Reckoning)
     raidDurationSec: 16,
     breedBaseCostMush: 6,    // mushrooms per new goblin (scales with pop) — cheap, breed a big tribe
     breedScale: 1.15,        // per-goblin breed-cost growth (gentler so large warrens stay viable)

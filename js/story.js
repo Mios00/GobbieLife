@@ -344,4 +344,25 @@
     const n = pick(WORLDNEWS);
     return silly(state.silliness) ? n.silly : n.text;
   };
+
+  // --- the Reckoning (endgame act) ------------------------------
+  // SCAFFOLD ONLY. Raising the Great Hall begins a staged climactic act rather
+  // than ending instantly; these placeholder beats advance, then the ending
+  // resolves. Later tasks (E4 Final Choice, E5 destiny climaxes) replace this
+  // with destiny-specific, interactive content. Returns null past the last beat
+  // (the signal for game.js to resolve the ending).
+  const RECKONING = [
+    'The Great Hall rises, beam by impossible beam — and far beyond the wood, the powers of the world turn their heads toward a goblin who was meant to stay a rumour. The Reckoning begins.',
+    'Word spreads like fire on dry grass. Banners are counted, old debts remembered. Something is gathering at the edge of the map, and it is gathering toward you.',
+    'The horizon darkens with the weight of everyone you have ever touched — every mercy, every cruelty, every road taken or refused. The hour is almost upon you.',
+  ];
+  const RECKONING_SILLY = [
+    'The Great Hall goes up beam by improbable beam, and the entire world simultaneously gets a push notification about a goblin it was promised would stay irrelevant. The Reckoning begins (sorry).',
+    'The news goes viral. Banners are counted. Old grudges reactivate like dormant subscriptions. Something is coming, and it has your address.',
+    'The horizon fills up ominously, like a group chat you were added to without consent. Everything you have ever done is about to be tallied by people with very strong opinions.',
+  ];
+  S.reckoningBeat = function (stage, sill) {
+    const pool = silly(sill) ? RECKONING_SILLY : RECKONING;
+    return (stage >= 0 && stage < pool.length) ? pool[stage] : null;
+  };
 })();

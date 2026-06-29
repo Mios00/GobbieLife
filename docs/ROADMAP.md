@@ -94,7 +94,7 @@ world it pays off. (Dependencies in each task still apply; this order respects t
 1. [x] **T0.1** — Factions, standing & gradual discovery ✅
 2. [x] **T0.2** — Standing panel + deeds move standing ✅
 3. [x] **T0.3** — World news feed (flavor; also a discovery vector) ✅
-4. [ ] **E1** — Finale → multi-act Reckoning scaffold  *(restructure the endgame early)*
+4. [x] **E1** — Finale → multi-act Reckoning scaffold ✅  *(E4 fills in the Final Choice; E5 the destiny climaxes)*
 5. [ ] **E2** — Protagonist mortality + the two clocks
 6. [ ] **E3** — Hold (grip) + succession
 7. [ ] **T1.1** — Adventure zones + panel scaffold
@@ -178,11 +178,9 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 > (Hold/succession) → E4 (the Reckoning ties them together). E5–E6 are
 > content-heavy and can interleave with Phases 1–4. E7 is a stretch.
 
-- [ ] **E1 — Finale → multi-act Reckoning (scaffold)**
-  - Goal: the Great Hall *triggers* an endgame act instead of ending instantly.
-  - Scope: `s.endgame = { active, stage, started }`. Building the Great Hall (or a path monument) sets `unlocks.finale` and **begins The Reckoning** — a staged sequence (`tickReckoning` or chapter-acts VII+) that advances through beats and ends by calling the (relocated) `Game.finish`. Keep a placeholder 2–3 stage sequence for now; E4/E5 fill it with content.
-  - Accept: building greatHall no longer ends the game immediately; an endgame state starts, advances through stages, and only *then* resolves to an ending; save/sanitize/migrate for `s.endgame`; tests.
-  - Deps: none.
+- [x] **E1 — Finale → multi-act Reckoning (scaffold)** ✅
+  - Done: `s.endgame = { active, stage, accum }`. Building the Great Hall now calls `Game.beginReckoning` (not `Game.finish`) — sets `unlocks.finale` and starts **The Reckoning**, a staged act. `tickReckoning` advances placeholder beats (`Story.reckoningBeat`, earnest+silly) every `reckoningStageSec`, then calls the relocated `Game.finish` to resolve the ending. The world keeps running during the act; a header **⚔ The Reckoning** marker shows while active. Sanitize/migrate for `s.endgame`. 19 tests.
+  - **Hook for E4:** replace the auto-`Game.finish` at the end of `tickReckoning` with the player's **Final Choice**; E5 makes `reckoningBeat` destiny-specific.
 - [ ] **E2 — Protagonist mortality + the two clocks**
   - Goal: you age and will die; the world has its own countdown.
   - Scope: `s.age`, `s.lifespan` (long, randomised; ages only during active play, not offline), `s.renown`. `s.comet` (long countdown seeded at start / by omens) surfaced via Oracle + news. As age nears lifespan, a "twilight" pressure; protagonist death with no succession plan force-triggers the Reckoning/an ending.
@@ -288,6 +286,7 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-29 — **E1** — Finale → multi-act Reckoning scaffold: Great Hall begins a staged endgame act (`s.endgame`, `tickReckoning`, `Story.reckoningBeat`) instead of ending instantly; resolves after its beats; header marker; sanitize/migrate. 19 tests.
 - 2026-06-29 — **T0.2 + T0.3** — Standing panel (color-coded, discovered factions only) + deeds move standing (raids/deals/welcoming races/trade); World news feed (caravan/wanderer flavor, comet seeds, second discovery vector). 18 tests.
 - 2026-06-29 — **Build order** — added a single Blended build order interleaving the world track (T*) and story track (E*); story is woven through, not appended after.
 - 2026-06-29 — **Story design** — added the Story Bible (The Bargain spine, one-story-four-lenses, recurring cast, two clocks, the Final Choice, mortality & succession, become-the-Oracle, endings) and **Phase E** (E1–E7) endgame/story tasks.
