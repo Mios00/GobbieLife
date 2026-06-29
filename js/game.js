@@ -32,6 +32,8 @@
       races: { dwarf: 0, human: 0, elf: 0 }, // other races who've joined the tribe
       notables: [],         // named individual goblins (the roster)
       notableSeq: 0,        // id counter for notables
+      standing: initStanding(),     // per-faction standing (-100..100)
+      discovered: initDiscovered(), // which factions you've heard of (gradual)
       jobs: { forage: 0, dig: 0, raid: 0 },
 
       buildings: {
@@ -182,6 +184,53 @@
   Game.riskFactor = function (s) {
     return Math.pow(0.65, s.buildings.lookout || 0);
   };
+
+  // ---- factions & standing -------------------------------------
+  function initStanding() {
+    const m = {}; for (const id in GG.FACTIONS) m[id] = GG.FACTIONS[id].baseStanding || 0; return m;
+  }
+  function initDiscovered() {
+    const m = {}; for (const id in GG.FACTIONS) m[id] = !!GG.FACTIONS[id].startKnown; return m;
+  }
+  const clampStanding = (v) => Math.max(-100, Math.min(100, v));
+
+  Game.standing = function (s, id) {
+    const v = s.standing && s.standing[id];
+    return Number.isFinite(v) ? v : (GG.FACTIONS[id] ? GG.FACTIONS[id].baseStanding : 0);
+  };
+  Game.standingTier = function (v) {
+    const t = GG.STANDING_TIERS;
+    let name = t[0].name;
+    for (const tier of t) if (v >= tier.at) name = tier.name;
+    return name;
+  };
+  Game.adjustStanding = function (s, id, delta) {
+    if (!GG.FACTIONS[id]) return;
+    if (!s.standing) s.standing = initStanding();
+    s.standing[id] = clampStanding(Game.standing(s, id) + delta);
+  };
+  Game.isDiscovered = function (s, id) {
+    return !!(s.discovered && s.discovered[id]);
+  };
+  Game.knownFactions = function (s) {
+    return Object.keys(GG.FACTIONS).filter((id) => Game.isDiscovered(s, id));
+  };
+  // reveal a faction (idempotent). Returns true if newly discovered.
+  Game.discoverFaction = function (s, id) {
+    const f = GG.FACTIONS[id];
+    if (!f || (s.discovered && s.discovered[id])) return false;
+    if (!s.discovered) s.discovered = {};
+    if (!s.standing) s.standing = initStanding();
+    s.discovered[id] = true;
+    if (!Number.isFinite(s.standing[id])) s.standing[id] = f.baseStanding || 0;
+    chronicle(s, `Word reaches the warren of ${f.name} — ${f.rumor || ''}`.trim());
+    return true;
+  };
+  // reveal one not-yet-known faction (used on chapter turns; later: exploration/news)
+  function maybeDiscover(s) {
+    const unknown = Object.keys(GG.FACTIONS).filter((id) => !(s.discovered && s.discovered[id]));
+    if (unknown.length) Game.discoverFaction(s, pickOne(unknown));
+  }
 
   // what the place LOOKS like now: 0 (a hole) … 6 (a city), derived from how
   // rooted you are, how built-up, and how big the tribe has grown.
@@ -430,6 +479,7 @@
     if (ok) {
       s.chapter += 1;
       chronicle(s, '— ' + GG.Story.herald(s.chapter, s.silliness) + ' —');
+      maybeDiscover(s); // the world gradually opens up as your tale advances
     }
   }
 
@@ -712,6 +762,14 @@
     // coerces types and drops any extra/attacker-injected keys (e.g. "__proto__").
     const res = {}; for (const k of numKeys) res[k] = nonneg(m.resources && m.resources[k]); m.resources = res;
     m.totals = { shiniesTotal: nonneg(m.totals && m.totals.shiniesTotal) };
+    // factions: known ids only — standing clamped to [-100,100], discovery sticky
+    const standing = {}, disc = {};
+    for (const id in GG.FACTIONS) {
+      const base = GG.FACTIONS[id].baseStanding || 0;
+      standing[id] = Math.max(-100, Math.min(100, n(m.standing && m.standing[id], base)));
+      disc[id] = !!(m.discovered && m.discovered[id]) || !!GG.FACTIONS[id].startKnown;
+    }
+    m.standing = standing; m.discovered = disc;
     // other races (known keys only, integer counts)
     const races = {}; for (const rc in GG.RACES) races[rc] = intNonneg(m.races && m.races[rc]); m.races = races;
     // population & job assignments (rendered raw → must be plain integers)

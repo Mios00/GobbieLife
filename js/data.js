@@ -52,6 +52,48 @@
              blurb: 'Lore-keepers and traders. Their quiet presence enriches the warren.' },
   };
 
+  // --- Factions (the powers of the world) -----------------------
+  // Per-faction standing runs -100 (Despised) .. +100 (Allied). Goblins start
+  // despised by almost everyone. Knowledge is GRADUAL: most factions are
+  // unknown until the world opens up (progression now; exploration/news later),
+  // at which point `Game.discoverFaction` reveals them. Only the few nearest
+  // powers are known from the start.
+  GG.FACTIONS = {
+    aldermere:   { name: 'the Kingdom of Aldermere', kind: 'human',  baseStanding: -55, startKnown: true,
+                   rumor: 'a proud human kingdom that has never had a kind word for goblinkind.' },
+    beastwilds:  { name: 'the Beast-Wilds',          kind: 'beast',  baseStanding: -70, startKnown: true,
+                   rumor: 'the howling wilds at your doorstep, where nothing negotiates and everything is hungry.' },
+    snaggletooth:{ name: 'the Snaggletooth Warren',  kind: 'goblin', baseStanding: -15, startKnown: true,
+                   rumor: 'a rival goblin warren two valleys over — kin, of a sort, and rivals, of a certainty.' },
+    tannard:     { name: 'the Free City of Tannard',  kind: 'merchant', baseStanding: -30,
+                   rumor: 'a bustling merchant city where, they say, coin matters more than blood.' },
+    karzun:      { name: 'the Deephold of Karzun',    kind: 'dwarf',  baseStanding: -40,
+                   rumor: 'a dwarven hold deep under the mountains, all hammers and suspicion.' },
+    aelinvar:    { name: 'the Sylvan Court of Aelinvar', kind: 'elf', baseStanding: -45,
+                   rumor: 'an aloof elven court that regards almost everyone as a passing inconvenience.' },
+    gorefist:    { name: 'the Gorefist Horde',        kind: 'orc',    baseStanding: -35,
+                   rumor: 'a roving orc horde that respects exactly one thing, and it is not words.' },
+    gilded:      { name: 'the Gilded League',         kind: 'merchant', baseStanding: -25,
+                   rumor: 'a sprawling trade league of gnomes and halflings who will deal with anyone solvent.' },
+    mournhollow: { name: 'the Barony of Mournhollow', kind: 'undead', baseStanding: -50,
+                   rumor: 'a fog-bound barony where the dead are said to keep working long after they should stop.' },
+    thornveil:   { name: 'the Thornveil Court',       kind: 'fey',    baseStanding: -40,
+                   rumor: 'a fey court behind the hawthorn, where the rules are many, unwritten, and lethal.' },
+    ssirvax:     { name: 'Ssirvax\'s Reach',          kind: 'dragon', baseStanding: -60,
+                   rumor: 'the domain of a long-lived dragon who counts everything, and forgets nothing.' },
+  };
+
+  // standing tiers (low → high). Game.standingTier maps a value to one of these.
+  GG.STANDING_TIERS = [
+    { at: -100, name: 'Despised' },
+    { at: -55,  name: 'Distrusted' },
+    { at: -20,  name: 'Wary' },
+    { at: 15,   name: 'Tolerated' },
+    { at: 45,   name: 'Respected' },
+    { at: 75,   name: 'Trusted' },
+    { at: 95,   name: 'Allied' },
+  ];
+
   // --- Notable goblins (a Dwarf-Fortress-ish roster of named individuals) ---
   // A handful of goblins stand out from the crowd, each with a personality.
   // They age on a randomised natural lifespan, do trait-flavoured things that

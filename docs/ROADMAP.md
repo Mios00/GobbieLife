@@ -24,8 +24,11 @@ world: an **adventure pathway**, **per-faction reputation**, **inbound threats
    party strength vs threat, with gear/skill/luck rolls, injury/death risk, and
    a narrated Chronicle result. (Optionally a single fight/sneak/parley choice.)
 4. **Reputation = per-faction standing.** Each faction rates you
-   `Despised → Distrusted → Tolerated → Respected → Trusted → Allied`. Drives
-   trade, who duels you, who marches to war, and which zones are safe.
+   `Despised → Distrusted → Wary → Tolerated → Respected → Trusted → Allied`.
+   Drives trade, who duels you, who marches to war, and which zones are safe.
+5. **Faction knowledge is gradual.** Only the few nearest powers are known at
+   the start; the rest are *discovered* as the world opens up (chapter
+   progression now; exploration & world-news later). ~11 factions to find.
 
 ### Round-two defaults (adjustable)
 - **War:** multi-stage *defendable event*; outcome weighted by defense strength.
@@ -76,10 +79,10 @@ world: an **adventure pathway**, **per-faction reputation**, **inbound threats
 
 ## Phase 0 — World foundation  *(enables everything)*
 
-- [ ] **T0.1 — Factions data model & standing**
-  - Goal: a world of named factions and a per-faction standing meter.
-  - Scope: `GG.FACTIONS` in data.js — e.g. `{ id, name, kind ('human'|'dwarf'|'elf'|'beast'|'goblin'), baseStanding }` (a couple human kingdoms, a dwarven hold, an elven court, the beast-wilds, a rival warren). `s.factions = { id: standing(-100..100) }`. `Game.standing(s,id)`, `Game.standingTier(value)` → name. `Game.adjustStanding(s,id,delta)`. Defaults + `sanitizeState` coercion (known faction ids only, clamp) + migrate.
-  - Accept: tests for default standings, tier thresholds, clamp, sanitize of crafted values; no UI required.
+- [x] **T0.1 — Factions data model & standing + discovery** ✅
+  - Goal: a world of named factions, a per-faction standing meter, and *gradual* knowledge of who's out there.
+  - Done: `GG.FACTIONS` (11 — Aldermere, Beast-Wilds, Snaggletooth Warren, Tannard, Karzun, Aelinvar, Gorefist Horde, Gilded League, Mournhollow, Thornveil, Ssirvax) with `kind`/`baseStanding`/`startKnown`/`rumor`; `GG.STANDING_TIERS`. State: `s.standing` (-100..100 per faction) + `s.discovered` (only 3 known at start). `Game.standing/standingTier/adjustStanding/isDiscovered/knownFactions/discoverFaction`. Discovery announced in the Chronicle; one new faction revealed per chapter turn (exploration/news will add more later). Full `sanitizeState` coercion (unknown ids dropped, standing clamped, discovery sticky + startKnown forced) + migrate. 24 tests, all green.
+  - Next: T0.2 surfaces this in a Standing panel and wires deeds → standing.
 - [ ] **T0.2 — Standing panel + deeds move standing**
   - Goal: see how each faction regards you; existing actions change it.
   - Scope: a `#standing` panel (faction + tier, color-coded). Wire raids/cruelty to lower nearby-faction standing, trade/mercy/welcoming-races to raise it. Start most factions at **Despised**.
@@ -152,4 +155,5 @@ world: an **adventure pathway**, **per-faction reputation**, **inbound threats
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-29 — **T0.1** — Factions data model (11 factions), per-faction standing + tiers, gradual discovery (chapter-driven for now), sanitize/migrate, 24 tests.
 - _(append: date — task id — one line, as tasks are completed)_
