@@ -28,13 +28,15 @@
 
       buildings: {
         mushroomPatch: 0, scrapHeap: 0, burrow: 0,
-        warTent: 0, tradingPost: 0, totem: 0, greatHall: 0,
+        warTent: 0, lookout: 0, tradingPost: 0, brewery: 0, totem: 0, greatHall: 0,
       },
 
       stats: { greed: 0, cruelty: 0, openness: 0, wanderlust: 0 },
       settle: 0,           // how "rooted" you are (from building)
       raidCount: 0,
       tradeCount: 0,
+      buyAmt: 1,           // bulk-buy selector for buildings (1 | 10 | 'max')
+      achievements: {},    // id -> true once earned
 
       unlocks: { breeding: false, raids: false, trade: false, destiny: false, finale: false },
 
@@ -101,6 +103,50 @@
     return true;
   };
 
+  // cumulative cost to buy `n` consecutive levels of a building, accounting
+  // for the per-level growth. Returns { cost, count } where count may be less
+  // than n if the building hits its max first.
+  Game.buildingCostN = function (s, id, n) {
+    const def = GG.BUILDINGS[id];
+    let lvl = s.buildings[id];
+    const cost = {};
+    let count = 0;
+    for (let i = 0; i < n; i++) {
+      if (def.max && lvl >= def.max) break;
+      for (const res in def.base) {
+        cost[res] = (cost[res] || 0) + Math.ceil(def.base[res] * Math.pow(def.growth, lvl));
+      }
+      lvl++; count++;
+    }
+    return { cost, count };
+  };
+
+  // how many levels of `id` the player can currently afford (greedy, exact).
+  Game.maxAffordable = function (s, id) {
+    const def = GG.BUILDINGS[id];
+    let lvl = s.buildings[id];
+    const spent = { mushrooms: 0, scrap: 0, shinies: 0 };
+    let count = 0;
+    while (!(def.max && lvl >= def.max)) {
+      const step = {};
+      let ok = true;
+      for (const res in def.base) {
+        step[res] = Math.ceil(def.base[res] * Math.pow(def.growth, lvl));
+        if (s.resources[res] < spent[res] + step[res]) { ok = false; break; }
+      }
+      if (!ok) break;
+      for (const res in step) spent[res] += step[res];
+      lvl++; count++;
+      if (count > 9999) break; // safety
+    }
+    return count;
+  };
+
+  // each Lookout Warren multiplies the odds of bad outcomes / events down.
+  Game.riskFactor = function (s) {
+    return Math.pow(0.65, s.buildings.lookout || 0);
+  };
+
   // ---- verbs ----------------------------------------------------
   function note(s, msg) {
     s.log.unshift(msg);
@@ -124,9 +170,11 @@
     s.jobs[job] += delta;
   };
 
-  Game.build = function (s, id) {
+  // build one level. returns true on success.
+  function buildOne(s, id) {
     const def = GG.BUILDINGS[id];
     if (def.requiresChapter && s.chapter < def.requiresChapter) return false;
+    if (def.needs && !s.unlocks[def.needs]) return false;
     const cost = Game.buildingCost(s, id);
     if (!Game.canAfford(s, cost)) return false;
     for (const res in cost) s.resources[res] -= cost[res];
@@ -136,13 +184,22 @@
     if (def.settle) s.settle += def.settle;
     if (def.lean) for (const k in def.lean) s.stats[k] += def.lean[k];
 
-    note(s, 'Built ' + def.name + '.');
     // first-time-built gets a chronicle beat
-    if (s.buildings[id] === 1) {
-      chronicle(s, firstBuildLine(id));
-    }
+    if (s.buildings[id] === 1) chronicle(s, firstBuildLine(id));
     if (id === 'greatHall') Game.finish(s);
     return true;
+  }
+
+  // build `count` levels (a number, or 'max'). returns how many were raised.
+  Game.build = function (s, id, count) {
+    const def = GG.BUILDINGS[id];
+    let want = count === 'max' ? Infinity : (count || 1);
+    if (def.max === 1) want = 1; // one-of buildings ignore bulk
+    let built = 0;
+    while (built < want && buildOne(s, id)) built++;
+    if (built === 1) note(s, 'Built ' + def.name + '.');
+    else if (built > 1) note(s, 'Built ' + def.name + ' ×' + built + '.');
+    return built;
   };
 
   function firstBuildLine(id) {
@@ -151,7 +208,9 @@
       scrapHeap: 'You start a proper scrap heap. Goblins arrive to admire it like art. It is, to them, art.',
       burrow: 'You dig new burrows. That night, for the first time, the warren is too crowded to feel alone.',
       warTent: 'You raise a war tent of hide and spite. The young goblins sharpen things. Something is coming, and it will be you.',
+      lookout: 'You raise a lookout warren on the high rocks. For the first time, the dark holds fewer surprises. The sentries take their watch very, very seriously.',
       tradingPost: 'You prop up a trading post on the road. The first traveller flinches, then haggles. Commerce, it turns out, is louder than war and almost as fun.',
+      brewery: 'You build a brewery and ferment the first batch of mushroom ale. It is vile. The tall folk adore it. Coin starts to trickle in while you sleep.',
       totem: 'You carve a totem that "remembers." Goblins tell it their day. It tells you your destiny, a little clearer each time.',
       greatHall: 'The Great Hall rises, beam by impossible beam. Every goblin you ever recruited stands in its shadow. This is the end of one tale and, you suspect, the start of a legend.',
     };
@@ -203,28 +262,62 @@
     };
   }
 
-  // player resolves a raid choice
+  // grant a resource and keep lifetime shinies in sync (for milestones)
+  function gain(s, res, amt) {
+    s.resources[res] = Math.max(0, s.resources[res] + amt);
+    if (res === 'shinies' && amt > 0) s.totals.shiniesTotal += amt;
+  }
+  function loseGoblin(s) {
+    if (s.population <= 1) return false;
+    s.population -= 1;
+    // pull from the warband first, then any other job, so counts stay valid
+    if (s.jobs.raid > 0) s.jobs.raid -= 1;
+    else if (s.jobs.dig > 0) s.jobs.dig -= 1;
+    else if (s.jobs.forage > 0) s.jobs.forage -= 1;
+    return true;
+  }
+  function dominantStat(s) {
+    let best = null, bestV = 0.0001;
+    for (const k of ['greed', 'cruelty', 'openness', 'wanderlust']) {
+      if (s.stats[k] > bestV) { bestV = s.stats[k]; best = k; }
+    }
+    return best;
+  }
+
+  // player resolves a raid OR event choice (shared option schema)
   Game.resolveChoice = function (s, optIndex) {
     if (!s.pendingChoice) return;
     const opt = s.pendingChoice.options[optIndex];
     const raiders = s.pendingChoice._raiders || 1;
-    // loot scales mildly with raider count
+    // loot scales mildly with raider count (events have no raiders → mult 1)
     const mult = 1 + (raiders - 1) * 0.25;
+
+    if (opt.cost) for (const res in opt.cost) gain(s, res, -opt.cost[res]);
+    if (opt.give) for (const res in opt.give) gain(s, res, opt.give[res]);
     if (opt.loot) {
       for (const res in opt.loot) {
         const [lo, hi] = opt.loot[res];
-        const amt = Math.round((lo + Math.random() * (hi - lo)) * mult);
-        s.resources[res] += amt;
-        if (res === 'shinies') s.totals.shiniesTotal += amt;
+        gain(s, res, Math.round((lo + Math.random() * (hi - lo)) * mult));
       }
     }
+    if (opt.gamble) {
+      const win = Math.random() < 0.5;
+      gain(s, opt.gamble.res, win ? opt.gamble.stake * 2 : 0);
+      note(s, win ? 'The bones came up goblin! Doubled the stake.' : 'The bones betrayed you. Stake lost.');
+    }
+    if (opt.pop) {
+      if (opt.pop > 0) { s.population += opt.pop; note(s, 'A new goblin joins the warren. (+' + opt.pop + ' pop)'); }
+      else for (let i = 0; i < -opt.pop; i++) loseGoblin(s);
+    }
     if (opt.lean) for (const k in opt.lean) s.stats[k] += opt.lean[k];
-    // risky options can cost a goblin
-    if (opt.risk && Math.random() < opt.risk && s.population > 1) {
-      s.population -= 1;
-      // pull from raiders first
-      if (s.jobs.raid > 0) s.jobs.raid -= 1;
-      note(s, 'A goblin did not come home.');
+
+    // idol event: amplify or soften whatever you've been becoming
+    if (opt._amplify) { const d = dominantStat(s); if (d) s.stats[d] += 3; }
+    if (opt._soften)  { const d = dominantStat(s); if (d) s.stats[d] = Math.max(0, s.stats[d] - 3); }
+
+    // risky options can cost a goblin (Lookout Warrens reduce the odds)
+    if (opt.risk && Math.random() < opt.risk * Game.riskFactor(s)) {
+      if (loseGoblin(s)) note(s, 'A goblin did not come home.');
     }
     if (opt.log) chronicle(s, opt.log);
     s.pendingChoice = null;
@@ -278,6 +371,76 @@
     }
   }
 
+  // ---- random events -------------------------------------------
+  let eventAccum = 0, eventThreshold = 0;
+  function rollEventThreshold() {
+    eventThreshold = C.eventMinSec + Math.random() * (C.eventMaxSec - C.eventMinSec);
+  }
+  rollEventThreshold();
+
+  function eligibleEvents(s) {
+    return (GG.EVENTS || []).filter((e) => {
+      try { return e.when ? e.when(s) : true; } catch (_) { return false; }
+    });
+  }
+  function pickEvent(s, pool) {
+    const rf = Game.riskFactor(s);
+    let total = 0;
+    const weights = pool.map((e) => {
+      let w = e.weight || 1;
+      if (e.bad) w *= rf; // Lookout makes nasty events rarer
+      total += w;
+      return w;
+    });
+    let r = Math.random() * total;
+    for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r <= 0) return pool[i]; }
+    return pool[pool.length - 1];
+  }
+  function fireAutoEvent(s, ev) {
+    const fx = ev.effect || {};
+    if (fx.give) for (const res in fx.give) gain(s, res, fx.give[res]);
+    if (fx.take) for (const res in fx.take) gain(s, res, -Math.floor(s.resources[res] * fx.take[res]));
+    if (fx.pop) { if (fx.pop > 0) s.population += fx.pop; else for (let i = 0; i < -fx.pop; i++) loseGoblin(s); }
+    if (fx.lean) for (const k in fx.lean) s.stats[k] += fx.lean[k];
+    chronicle(s, ev.text);
+  }
+  function tickEvents(s, dt) {
+    if (s.pendingChoice || (s.raid && s.raid.active)) return; // don't pile up modals
+    if (s.chapter < 1) return; // let the player settle in first
+    eventAccum += dt;
+    if (eventAccum < eventThreshold) return;
+    eventAccum = 0;
+    rollEventThreshold();
+    const pool = eligibleEvents(s);
+    if (!pool.length) return;
+    const ev = pickEvent(s, pool);
+    if (ev.options) {
+      // choice event → reuse the same modal plumbing as raids
+      s.pendingChoice = {
+        title: ev.title,
+        text: ev.text,
+        options: ev.options.map((o) => ({ ...o })),
+        isEvent: true,
+      };
+    } else {
+      fireAutoEvent(s, ev);
+    }
+  }
+
+  // ---- achievements ("Annals") ---------------------------------
+  function checkAchievements(s) {
+    for (const a of (GG.ACHIEVEMENTS || [])) {
+      if (s.achievements[a.id]) continue;
+      let got = false;
+      try { got = a.test(s, Game); } catch (_) { got = false; }
+      if (got) {
+        s.achievements[a.id] = true;
+        note(s, '✦ Annal earned: ' + a.name);
+        chronicle(s, '✦ The Annals remember: "' + a.name + '."');
+      }
+    }
+  }
+
   // ---- destiny meter (only revealed after Totem) ---------------
   Game.destiny = function (s) {
     const scores = {};
@@ -301,9 +464,7 @@
   // ---- master tick ---------------------------------------------
   Game.tick = function (s, dtSec) {
     if (s.ending) return; // game over, world frozen
-    const r = Game.rates(s);
-    s.resources.mushrooms = Math.max(0, s.resources.mushrooms + r.mushrooms * dtSec);
-    s.resources.scrap = Math.max(0, s.resources.scrap + r.scrap * dtSec);
+    applyProduction(s, dtSec);
 
     tickBreeding(s, dtSec);
 
@@ -312,9 +473,22 @@
     }
 
     tickStory(s, dtSec);
+    tickEvents(s, dtSec);
     checkChapters(s);
+    checkAchievements(s);
     s.lastSeen = Date.now();
   };
+
+  // apply net per-second production for all resources over `dt` seconds,
+  // crediting passive shinies (e.g. the Brewery) toward lifetime totals.
+  function applyProduction(s, dt) {
+    const r = Game.rates(s);
+    for (const res of ['mushrooms', 'scrap', 'shinies']) {
+      const delta = r[res] * dt;
+      s.resources[res] = Math.max(0, s.resources[res] + delta);
+      if (res === 'shinies' && delta > 0) s.totals.shiniesTotal += delta;
+    }
+  }
 
   // ---- offline catch-up ----------------------------------------
   Game.applyOffline = function (s) {
@@ -322,9 +496,7 @@
     let dt = (now - s.lastSeen) / 1000;
     if (dt < 5) return 0;
     const capped = Math.min(dt, C.offlineCapHours * 3600);
-    const r = Game.rates(s);
-    s.resources.mushrooms = Math.max(0, s.resources.mushrooms + r.mushrooms * capped);
-    s.resources.scrap = Math.max(0, s.resources.scrap + r.scrap * capped);
+    applyProduction(s, capped);
     s.lastSeen = now;
     return capped;
   };
@@ -346,6 +518,20 @@
   };
   Game.fresh = newState;
 
+  // ---- export / import (portable save codes) -------------------
+  Game.exportCode = function (s) {
+    try { return btoa(unescape(encodeURIComponent(JSON.stringify(s)))); }
+    catch (e) { return null; }
+  };
+  Game.importCode = function (code) {
+    try {
+      const json = decodeURIComponent(escape(atob(code.trim())));
+      const s = JSON.parse(json);
+      if (!s || typeof s !== 'object' || !s.resources) return null;
+      return migrate(s);
+    } catch (e) { return null; }
+  };
+
   // tolerate older/partial saves by filling gaps from a fresh state
   function migrate(s) {
     const base = newState();
@@ -357,6 +543,8 @@
     merged.unlocks = Object.assign({}, base.unlocks, s.unlocks);
     merged.totals = Object.assign({}, base.totals, s.totals);
     merged.raid = Object.assign({}, base.raid, s.raid);
+    merged.achievements = Object.assign({}, s.achievements || {});
+    if (merged.buyAmt == null) merged.buyAmt = 1;
     return merged;
   }
 })();

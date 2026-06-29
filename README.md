@@ -16,6 +16,14 @@ behind the scenes and the story drifts toward whichever you've been feeding —
 often a surprise even to the author. Build the **Totem of Tales** to glimpse
 your "Destiny" meter; raise the **Great Hall** to end your tale.
 
+Along the way the world pushes back: **random events** (wandering bards, ragged
+refugees, a sleeping wyrm's hoard, a sickness in the tunnels) interrupt with
+choices that quietly tilt those same hidden stats. A **Lookout Warren** makes
+the nastier surprises rarer; a **Mushroom Brewery** ferments coin while you
+sleep. Your deeds are recorded in the **Annals** (achievements), and you can
+**bulk-buy** structures (×1 / ×10 / Max) and **export/import** your save as a
+portable code.
+
 ## Play it
 
 - **No install.** It's pure HTML/CSS/JS — just open `index.html` in a browser
@@ -45,9 +53,9 @@ narrative is **procedurally assembled** from authored building blocks:
 |------|------|
 | `index.html` | shell + panels |
 | `css/style.css` | mossy-cave terminal theme |
-| `js/data.js` | resources, buildings, jobs, raid targets, endings (all balance numbers) |
+| `js/data.js` | resources, buildings, jobs, raid targets, **events**, **achievements**, endings (all balance numbers) |
 | `js/story.js` | procedural narrative engine |
-| `js/game.js` | state, idle simulation, raids, hidden stats, save/load |
+| `js/game.js` | state, idle simulation, raids, **events**, **achievements**, hidden stats, save/load + export/import |
 | `js/ui.js` | rendering + one delegated input handler |
 | `js/main.js` | boot + game loop |
 

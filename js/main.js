@@ -25,6 +25,16 @@
           Game.reset();
           state = Game.fresh();
         }
+      } else if (cmd === 'export') {
+        const code = Game.exportCode(state);
+        if (code) window.prompt('Your save code — copy it somewhere safe:', code);
+      } else if (cmd === 'import') {
+        const code = window.prompt('Paste a save code to load it (replaces your current tale):');
+        if (code) {
+          const loaded = Game.importCode(code);
+          if (loaded) { state = loaded; Game.save(state); alert('Save loaded.'); }
+          else alert('That save code could not be read.');
+        }
       }
       UI.render(state);
       Game.save(state);

@@ -17,6 +17,8 @@
     raidDurationSec: 16,
     breedBaseCostMush: 12,   // mushrooms per new goblin (scales with pop)
     breedSecPerGoblin: 9,    // seconds of progress to spawn a goblin
+    eventMinSec: 80,         // soonest a random event can interrupt
+    eventMaxSec: 150,        // latest before one is guaranteed
   };
 
   // --- Resources -------------------------------------------------
@@ -65,11 +67,27 @@
       lean: { cruelty: 1 },
       settle: 1,
     },
+    lookout: {
+      name: 'Lookout Warren',
+      blurb: 'Sharp-eyed sentries watch the dark. Raids go better and nasty surprises come less often.',
+      base: { scrap: 30, mushrooms: 20 }, growth: 1.8,
+      needs: 'raids',
+      settle: 1,
+    },
     tradingPost: {
       name: 'Trading Post',
       blurb: 'A rickety stall on the road. Other folk start to visit... and trade.',
       base: { scrap: 34, shinies: 6 }, growth: 1.85,
       unlocks: 'trade',
+      lean: { openness: 1 },
+      settle: 1,
+    },
+    brewery: {
+      name: 'Mushroom Brewery',
+      blurb: 'Goblins ferment spare mushrooms into a potent ale the tall folk pay dearly for. Slow, steady coin.',
+      base: { scrap: 44, mushrooms: 40 }, growth: 1.7,
+      prod: { shinies: 0.12, mushrooms: -0.35 },
+      needs: 'trade',
       lean: { openness: 1 },
       settle: 1,
     },
@@ -146,6 +164,173 @@
           log: 'You returned with a wide-eyed elf scholar who calls your warren "a remarkable culture." Goblins are unsure how to feel.' },
       ],
     },
+    {
+      id: 'minecart',
+      title: 'A Runaway Mine Cart',
+      text: 'A dwarven ore cart has jumped its rails and lies on its side in the gully, axles still spinning. No dwarves yet — but you can hear hammers in the deep.',
+      options: [
+        { label: 'Strip the cart and run', loot: { scrap: [18, 30], shinies: [6, 10] }, lean: { greed: 2, wanderlust: 1 },
+          log: 'You hauled off every bolt and ingot before the first dwarf reached the surface. They are still cursing your name in three dialects.' },
+        { label: 'Right the cart and roll it home whole', loot: { scrap: [12, 20], shinies: [10, 16] }, risk: 0.2, lean: { greed: 3 },
+          log: 'Getting the whole cart back took muscle and a few crushed toes, but a dwarven cart is worth a heap of bent scrap.' },
+        { label: 'Wait, and return it for a reward', loot: { shinies: [9, 15] }, lean: { openness: 3 },
+          log: 'You sat on the cart and waved when the dwarves arrived. Baffled, grateful, suspicious — they paid you anyway, and now you have a dwarf who owes you a favour.' },
+      ],
+    },
+    {
+      id: 'hoard',
+      title: 'A Sleeping Wyrm\'s Hoard',
+      text: 'Down a scorched ravine lies a young dragon, curled on a mound of gold the size of a hill. Its breath stirs the coins. It is, for now, asleep.',
+      options: [
+        { label: 'Take it all and wake the beast', loot: { shinies: [40, 70], scrap: [10, 20] }, risk: 0.45, lean: { greed: 4, cruelty: 2 },
+          log: 'You took everything and the sky turned to fire behind you. Some goblins are ash now, but the survivors are RICH, and the tale of it will outlive everyone who heard it.' },
+        { label: 'Skim the edges and slip away', loot: { shinies: [16, 26] }, risk: 0.1, lean: { greed: 2, wanderlust: 2 },
+          log: 'You took only what you could carry quietly and were a ridge away before the wyrm so much as snored. Patience, you decide, is just greed that lives longer.' },
+        { label: 'Wake it gently and... talk', loot: { shinies: [8, 14] }, risk: 0.15, lean: { openness: 4, wanderlust: 1 },
+          log: 'Nobody talks to dragons. You did. It found a goblin\'s nerve so funny it let you leave with a gift and an open invitation. The warren now has, technically, a dragon contact.' },
+      ],
+    },
+  ];
+
+  // --- Random events --------------------------------------------
+  // These interrupt play on a timer (see CONFIG.eventMin/MaxSec). Two kinds:
+  //   • CHOICE events have `options` (same schema as raid options, plus
+  //     `give`/`cost`/`pop`) and surface in the modal.
+  //   • AUTO events have no options — they apply `effect` and drop a line in
+  //     the Chronicle without stealing focus.
+  // `when(s)` gates eligibility; `weight` biases selection; `bad:true` events
+  // are made rarer by each Lookout Warren.
+  GG.EVENTS = [
+    // ---- auto / ambient surprises ----
+    {
+      id: 'shinyFind', weight: 3,
+      when: () => true,
+      text: 'A goblin trips, swears, and comes up clutching a fistful of coins someone buried and forgot. Finders keepers.',
+      effect: { give: { shinies: 5 }, lean: { greed: 1 } },
+    },
+    {
+      id: 'goodHarvest', weight: 2,
+      when: (s) => s.buildings.mushroomPatch > 0,
+      text: 'The patches come in fat and strange this season. The whole warren eats well and naps in a pile.',
+      effect: { give: { mushrooms: 25 } },
+    },
+    {
+      id: 'scrapVein', weight: 2,
+      when: (s) => s.buildings.scrapHeap > 0,
+      text: 'A digger breaks through into an old, forgotten dump — a whole seam of glorious junk.',
+      effect: { give: { scrap: 22 }, lean: { greed: 1 } },
+    },
+    {
+      id: 'strayGoblin', weight: 2,
+      when: (s) => s.unlocks.breeding && s.population < (2 + s.buildings.burrow * 3),
+      text: 'A muddy stranger wanders in from the dark, eats your dinner without asking, and is somehow already one of you.',
+      effect: { pop: 1 },
+    },
+    {
+      id: 'mushRot', weight: 1, bad: true,
+      when: (s) => s.resources.mushrooms > 30,
+      text: 'A grey rot sweeps the stores overnight. A good portion of the mushroom hoard is fit only for the rubbish heap.',
+      effect: { take: { mushrooms: 0.25 } }, // fraction
+    },
+
+    // ---- choice events ----
+    {
+      id: 'bard', weight: 2,
+      when: (s) => s.chapter >= 1,
+      title: 'A Wandering Bard',
+      text: 'A bard with more nerve than sense asks to spend the night and "collect your saga." He will sing of you, for better or worse.',
+      options: [
+        { label: 'Tell him everything (and feed him)', cost: { mushrooms: 10 }, lean: { openness: 2, wanderlust: 1 },
+          log: 'The bard left fat and full of your stories. Somewhere out there, taverns are now singing about a goblin, and getting half of it wrong in flattering ways.' },
+        { label: 'Rob him of his coin and his lute', give: { shinies: 7 }, lean: { greed: 2, cruelty: 1 },
+          log: 'You took the bard\'s purse and his lute. He left with a new song, and it is not a kind one, and you do not care.' },
+        { label: 'Send him on his way', lean: { wanderlust: 1 },
+          log: 'You watched the bard go. Some stories, you decide, are better not told. Or not yet.' },
+      ],
+    },
+    {
+      id: 'refugees', weight: 2,
+      when: (s) => s.chapter >= 2,
+      title: 'Strangers at the Treeline',
+      text: 'A ragged band of the tall folk — burned out of their homes by something worse than you — huddle at the edge of your wood, asking for shelter.',
+      options: [
+        { label: 'Take them in', cost: { mushrooms: 18 }, lean: { openness: 3 }, give: { scrap: 8 },
+          log: 'You let the refugees stay. They are clumsy in tunnels and terrified of the dark, but they can read, and cook, and they are loyal now in the way only the rescued are.' },
+        { label: 'Turn them away', lean: { cruelty: 1, greed: 1 },
+          log: 'You sent the strangers back into the cold. The warren is for goblins. The wind that night sounded, you thought, a little like judgement.' },
+        { label: 'Rob them of what little they have', give: { shinies: 5, scrap: 6 }, lean: { cruelty: 3, greed: 2 },
+          log: 'They had almost nothing. You took it anyway. A goblin learns early that "almost nothing" is still "something."' },
+      ],
+    },
+    {
+      id: 'plague', weight: 1, bad: true,
+      when: (s) => s.population >= 4,
+      title: 'A Sickness in the Tunnels',
+      text: 'A damp cough is spreading through the warren. Goblins are hardy, but this one has teeth.',
+      options: [
+        { label: 'Spend coin on remedies', cost: { shinies: 10 }, lean: { openness: 1 },
+          log: 'You bought bitter herbs from a road-witch and the sickness broke within days. Coin, it turns out, can buy a kind of mercy.' },
+        { label: 'Let the strong survive', risk: 0.6, lean: { cruelty: 2 },
+          log: 'You let the sickness run its course. The warren is leaner now, and harder, and quieter in a way you try not to think about.' },
+      ],
+    },
+    {
+      id: 'gambler', weight: 2,
+      when: (s) => s.unlocks.trade && s.resources.shinies >= 10,
+      title: 'A Grinning Gambler',
+      text: 'A stranger with too many teeth rattles a cup of bone dice. "Double your shinies," he says, "or lose the stake. Goblins love a gamble, no?"',
+      options: [
+        { label: 'Bet 10 shinies', cost: { shinies: 10 }, risk: 0, lean: { greed: 1 }, gamble: { res: 'shinies', stake: 10 },
+          log: 'You rattled the bones with a stranger. However it fell, the warren talked about it for a week.' },
+        { label: 'Flip his table instead', give: { shinies: 4 }, lean: { cruelty: 2 },
+          log: 'You upended the gambler\'s table, pocketed the scattered coins, and suggested he find another wood. He agreed with startling speed.' },
+        { label: 'Decline politely', lean: { openness: 1 },
+          log: 'You waved the gambler off. A goblin who knows when not to bet is a rare and slightly suspicious thing.' },
+      ],
+    },
+    {
+      id: 'oldKnight', weight: 1,
+      when: (s) => s.chapter >= 3,
+      title: 'An Old Knight\'s Last Errand',
+      text: 'A grey-bearded knight rides to your gate — not to fight, but to ask. A monster he cannot best alone is eating the next valley. He offers gold for goblin spears.',
+      options: [
+        { label: 'Take the contract', give: { shinies: 18 }, risk: 0.2, lean: { openness: 2, cruelty: 1 },
+          log: 'Goblins and a knight, fighting the same monster. It should be a joke. Instead it is a victory, and a strange new respect, and a purse of honest gold.' },
+        { label: 'Eat the knight\'s horse', give: { mushrooms: 12 }, lean: { cruelty: 3 },
+          log: 'You did not take the contract. You took the horse. The knight left on foot, and the monster, presumably, is still out there. Not your problem.' },
+        { label: 'Wish him luck and watch him go', lean: { wanderlust: 2 },
+          log: 'You sent the old knight off to his doom or his glory. Either way, it was a good story, and good stories are their own kind of payment.' },
+      ],
+    },
+    {
+      id: 'idol', weight: 1,
+      when: (s) => s.unlocks.destiny,
+      title: 'A Whisper from the Totem',
+      text: 'The Totem of Tales has been muttering all night. At dawn it shows you, clear as cold water, a glimpse of who you are becoming. It asks, in its way, if you like what you see.',
+      options: [
+        { label: 'Lean into it — yes, this is who I am', lean: {}, _amplify: true,
+          log: 'You looked at your reflection in the Totem and grinned. Whatever you are becoming, you reached out and took hold of it with both hands.' },
+        { label: 'Recoil — this is not who I meant to be', lean: {}, _soften: true,
+          log: 'You looked away from the Totem\'s mirror. A tale can still turn, you tell yourself. The road has forks yet.' },
+      ],
+    },
+  ];
+
+  // --- Achievements ("Annals") ----------------------------------
+  // Earned passively when test(s) goes true. `secret` ones hide until earned.
+  GG.ACHIEVEMENTS = [
+    { id: 'firstBuild', name: 'A Hole in the World', desc: 'Raise your first structure.', test: (s, G) => G.distinctBuildings(s) >= 1 },
+    { id: 'firstRaid',  name: 'First Blood',         desc: 'Send a warband on its first raid.', test: (s) => s.raidCount >= 1 },
+    { id: 'crowd',      name: 'No Longer Alone',      desc: 'Grow the tribe to 8 goblins.', test: (s) => s.population >= 8 },
+    { id: 'hoarder',    name: 'Dragon Dreams',        desc: 'Earn 150 shinies, all told.', test: (s) => s.totals.shiniesTotal >= 150 },
+    { id: 'architect',  name: 'Warren Architect',     desc: 'Raise 6 different kinds of structure.', test: (s, G) => G.distinctBuildings(s) >= 6 },
+    { id: 'merchant',   name: 'Goblin of Commerce',   desc: 'Make 15 trades at the post.', test: (s) => s.tradeCount >= 15 },
+    { id: 'raider',     name: 'Scourge of the Roads', desc: 'Complete 8 raids.', test: (s) => s.raidCount >= 8 },
+    { id: 'tycoon',     name: 'Insatiable',           desc: 'Reach 18 greed.', test: (s) => s.stats.greed >= 18, secret: true },
+    { id: 'tyrant',     name: 'They Whisper Your Name', desc: 'Reach 18 cruelty.', test: (s) => s.stats.cruelty >= 18, secret: true },
+    { id: 'saint',      name: 'An Unlikely Welcome',  desc: 'Reach 18 openness.', test: (s) => s.stats.openness >= 18, secret: true },
+    { id: 'nomad',      name: 'The Road Calls',       desc: 'Reach 14 wanderlust.', test: (s) => s.stats.wanderlust >= 14, secret: true },
+    { id: 'ending',     name: 'A Tale Earned',        desc: 'Bring a goblin\'s tale to its end.', test: (s) => !!s.ending },
   ];
 
   // --- Chapter milestones ---------------------------------------

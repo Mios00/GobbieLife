@@ -28,6 +28,7 @@
     renderActions(s);
     renderBuild(s);
     renderDestiny(s);
+    renderAnnals(s);
     renderChronicle(s);
     renderModal(s);
   };
@@ -45,7 +46,9 @@
     const rows = ['mushrooms', 'scrap', 'shinies'].map((res) => {
       const def = GG.RESOURCES[res];
       const rate = r[res] || 0;
-      const showRate = res !== 'shinies';
+      // shinies are mostly lump-sum (raids/trade); only show a rate once
+      // something produces them passively (the Brewery).
+      const showRate = res !== 'shinies' || Math.abs(rate) > 0.0001;
       return `<div class="rrow" title="${esc(def.desc)}">
         <span class="rsym">${def.sym}</span>
         <span class="rname">${def.name}</span>
@@ -121,36 +124,56 @@
   }
 
   function renderBuild(s) {
-    let html = '<h2>Build</h2>';
+    const amt = s.buyAmt || 1;
+    const pill = (n, label) =>
+      `<button class="pill ${amt === n ? 'on' : ''}" data-act="buyamt" data-n="${n}">${label}</button>`;
+    let html = `<h2>Build <span class="cap buyamt">${pill(1, '×1')}${pill(10, '×10')}${pill('max', 'Max')}</span></h2>`;
+
     for (const id in GG.BUILDINGS) {
       const def = GG.BUILDINGS[id];
       const lvl = s.buildings[id];
-      const cost = Game.buildingCost(s, id);
-      const locked = def.requiresChapter && s.chapter < def.requiresChapter;
-      const maxed = !cost;
+      const single = Game.buildingCost(s, id); // null when maxed
+      const maxed = !single;
+      const chapterLock = def.requiresChapter && s.chapter < def.requiresChapter;
+      const needLock = def.needs && !s.unlocks[def.needs];
+      const locked = chapterLock || needLock;
 
       // hide Great Hall until it's nearly relevant
-      if (id === 'greatHall' && s.chapter < def.requiresChapter - 0) {
-        if (s.chapter < 3) continue;
-      }
+      if (id === 'greatHall' && s.chapter < 3) continue;
+
+      // how many we'd buy with the current selector (one-of buildings → 1)
+      let want = def.max === 1 ? 1 : (amt === 'max' ? Game.maxAffordable(s, id) : amt);
+      // the cost shown: for Max with nothing affordable, show one level so the
+      // requirement is visible.
+      const showN = (amt === 'max' && want < 1 && def.max !== 1) ? 1 : Math.max(1, want);
+      const quote = maxed ? { cost: {}, count: 0 } : Game.buildingCostN(s, id, showN);
 
       let costStr = maxed ? '<i>complete</i>' :
-        Object.entries(cost).map(([res, n]) =>
+        Object.entries(quote.cost).map(([res, n]) =>
           `<span class="${s.resources[res] < n ? 'short' : ''}">${fmt(n)}${GG.RESOURCES[res].sym}</span>`).join(' ');
 
-      const can = !locked && !maxed && Game.canAfford(s, cost);
+      const can = !locked && !maxed && want >= 1 && Game.canAfford(s, quote.cost);
       const lvlBadge = def.max === 1 ? '' : `<span class="lvl">×${lvl}</span>`;
-      const lockMsg = locked ? `<div class="hint">Unlocks in Chapter ${def.requiresChapter}.</div>` : '';
+      const buyBadge = (!maxed && quote.count > 1) ? `<span class="bmult">+${quote.count}</span>` : '';
+      let lockMsg = '';
+      if (chapterLock) lockMsg = `<div class="hint">Unlocks in Chapter ${def.requiresChapter}.</div>`;
+      else if (needLock) lockMsg = `<div class="hint">Needs the ${needName(def.needs)} first.</div>`;
 
       html += `<div class="bitem ${can ? '' : 'cant'}">
         <button class="build" data-act="build" data-id="${id}" ${can ? '' : 'disabled'}>
-          <span class="bname">${def.name} ${lvlBadge}</span>
+          <span class="bname">${def.name} ${lvlBadge} ${buyBadge}</span>
           <span class="bcost">${costStr}</span>
         </button>
         <div class="bblurb">${esc(def.blurb)}</div>${lockMsg}
       </div>`;
     }
     $('build').innerHTML = html;
+  }
+
+  // friendly name for an unlock gate (which building grants it)
+  function needName(unlock) {
+    const map = { raids: 'War Tent', trade: 'Trading Post', breeding: 'Burrow', destiny: 'Totem of Tales' };
+    return map[unlock] || 'right building';
   }
 
   function renderDestiny(s) {
@@ -171,6 +194,24 @@
     }
     el.innerHTML = `<h2>Destiny <span class="cap">whispered by the Totem</span></h2>${bars}
       <div class="hint">Your deeds tilt the tale. No one chose this but you — and you didn't quite mean to.</div>`;
+  }
+
+  function renderAnnals(s) {
+    const list = GG.ACHIEVEMENTS || [];
+    const earned = list.filter((a) => s.achievements[a.id]).length;
+    let rows = '';
+    for (const a of list) {
+      const got = !!s.achievements[a.id];
+      const hide = a.secret && !got;
+      const name = hide ? '???' : a.name;
+      const desc = hide ? 'A secret deed, yet to be done.' : a.desc;
+      rows += `<div class="arow ${got ? 'got' : ''}">
+        <span class="amark">${got ? '✦' : '·'}</span>
+        <span class="atext"><b>${esc(name)}</b><span class="adesc">${esc(desc)}</span></span>
+      </div>`;
+    }
+    $('annals').innerHTML =
+      `<h2>Annals <span class="cap">${earned}/${list.length}</span></h2>${rows}`;
   }
 
   function renderChronicle(s) {
@@ -204,11 +245,18 @@
     if (s.pendingChoice) {
       const pc = s.pendingChoice;
       el.style.display = 'flex';
+      const opts = pc.options.map((o, i) => {
+        const afford = !o.cost || Game.canAfford(s, o.cost);
+        const costStr = o.cost
+          ? ` <span class="ocost ${afford ? '' : 'short'}">(${Object.entries(o.cost)
+              .map(([res, n]) => fmt(n) + GG.RESOURCES[res].sym).join(' ')})</span>`
+          : '';
+        return `<button class="act" data-act="choice" data-i="${i}" ${afford ? '' : 'disabled'}>${esc(o.label)}${costStr}</button>`;
+      }).join('');
       el.innerHTML = `<div class="card">
         <h1>${esc(pc.title)}</h1>
         <p>${esc(pc.text)}</p>
-        <div class="choices">${pc.options.map((o, i) =>
-          `<button class="act" data-act="choice" data-i="${i}">${esc(o.label)}</button>`).join('')}</div>
+        <div class="choices">${opts}</div>
       </div>`;
       return;
     }
@@ -225,11 +273,15 @@
       const act = t.dataset.act;
       if (act === 'manual') Game.manual(s, t.dataset.kind);
       else if (act === 'assign') Game.assign(s, t.dataset.job, parseInt(t.dataset.d, 10));
-      else if (act === 'build') Game.build(s, t.dataset.id);
+      else if (act === 'build') Game.build(s, t.dataset.id, s.buyAmt || 1);
+      else if (act === 'buyamt') s.buyAmt = t.dataset.n === 'max' ? 'max' : parseInt(t.dataset.n, 10);
       else if (act === 'raid') Game.launchRaid(s);
       else if (act === 'trade') Game.trade(s, t.dataset.kind);
       else if (act === 'choice') Game.resolveChoice(s, parseInt(t.dataset.i, 10));
       else if (act === 'restart') onChange('restart');
+      else if (act === 'export') onChange('export');
+      else if (act === 'import') onChange('import');
+      else if (act === 'hardreset') onChange('restart');
       else return;
       onChange('update');
     });

@@ -115,12 +115,42 @@ button { font-family: inherit; cursor: pointer; }
 .centry { color: var(--dim); padding: 5px 0; border-bottom: 1px dotted #232b1c; font-size: 14px; }
 .centry.grand { color: var(--gold); text-align: center; font-style: italic; border-bottom: none; padding: 10px 0; }
 
+/* build: bulk-buy pills */
+.buyamt { display: inline-flex; gap: 4px; }
+.pill { background: var(--bg2); color: var(--dim); border: 1px solid var(--line); border-radius: 4px;
+  font-size: 11px; padding: 2px 7px; letter-spacing: 0; }
+.pill:hover { border-color: var(--moss); color: var(--moss); }
+.pill.on { background: var(--moss); color: var(--bg); border-color: var(--moss); font-weight: bold; }
+.bmult { color: var(--moss); font-size: 11px; }
+
+/* annals (achievements) */
+.arow { display: grid; grid-template-columns: 16px 1fr; gap: 7px; padding: 4px 0; align-items: start; opacity: .55; }
+.arow.got { opacity: 1; }
+.amark { color: var(--dim); text-align: center; }
+.arow.got .amark { color: var(--gold); }
+.atext { display: flex; flex-direction: column; }
+.atext b { color: var(--ink); font-size: 13px; }
+.arow.got .atext b { color: var(--gold); }
+.adesc { color: var(--dim); font-size: 11px; font-style: italic; }
+
+/* choice cost tag */
+.ocost { color: var(--gold); font-size: 12px; }
+.ocost.short { color: var(--blood); }
+
 /* footer */
-#foot { margin-top: 22px; color: var(--dim); font-size: 11px; text-align: center; opacity: .7; }
+#foot { margin-top: 22px; color: var(--dim); font-size: 11px; text-align: center; opacity: .8;
+  display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: center; align-items: center; }
+.fctrl { display: inline-flex; gap: 14px; }
+.link { background: none; border: none; color: var(--dim); font-family: inherit; font-size: 11px;
+  text-decoration: underline; padding: 0; opacity: .85; }
+.link:hover { color: var(--moss); opacity: 1; }
+.link.danger:hover { color: var(--blood); }
 
 /* modal */
-#modal { position: fixed; inset: 0; background: rgba(5,7,4,.82); display: none; align-items: center; justify-content: center; padding: 20px; }
-.card { background: var(--panel); border: 1px solid var(--moss); border-radius: 8px; max-width: 560px; padding: 22px 26px; }
+#modal { position: fixed; inset: 0; background: rgba(5,7,4,.82); display: none; align-items: center; justify-content: center; padding: 20px; animation: fade .2s ease; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.card { background: var(--panel); border: 1px solid var(--moss); border-radius: 8px; max-width: 560px; padding: 22px 26px; animation: rise .22s ease; }
+@keyframes rise { from { transform: translateY(8px); opacity: .6; } to { transform: translateY(0); opacity: 1; } }
 .card h1 { color: var(--gold); margin: 0 0 14px; font-size: 22px; }
 .card p { color: var(--ink); }
 .choices .act { background: var(--bg2); }
