@@ -194,8 +194,8 @@ Principle: **make one life fun → make it loop → then add breadth.** New phas
 world track (`T*`) and remaining story track (`E*`) follow, re-centered on the
 loop. Detailed scopes for `E*`/`T*` remain in `ROADMAP.md`.
 
-1. **F1 — Juice layer.** Floating `+N`, count-ups, panel feedback, milestone
-   fanfare banners. *(Biggest dopamine-per-effort; do it first.)*
+1. **F1 — Juice layer.** ✅ Floating `+N`, count-ups, button-press feedback,
+   milestone fanfare banners (`GG.MILESTONES`). *(Shipped 2026-06-30.)*
 2. **F2 — Curated exponential rework.** Multiplicative buildings, named magnitude
    tiers, milestone ×2s, tap scaling. Re-balance.
 3. **F3 — Next-goal tracker + onboarding.** Surface chapter reqs; guided opening.

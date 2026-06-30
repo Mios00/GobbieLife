@@ -716,6 +716,52 @@
     { id: 'ending',     name: 'A Tale Earned',        desc: 'Bring a goblin\'s tale to its end.', test: (s) => !!s.ending },
   ];
 
+  // --- Milestones (escalation fanfares) -------------------------
+  // Celebratory "the numbers went UP" beats. Each fires exactly ONCE, the first
+  // time test(s,Game) goes true (tracked in s.milestones), dropping a ⚑ Chronicle
+  // line and a transient on-screen banner. Distinct from Annals (which reward
+  // specific DEEDS) — milestones reward SCALE, reinforcing the escalation pillar.
+  // Thresholds are tuned for the current economy and will be revisited in F2
+  // (curated-exponential rework). `silly` is the alternate register.
+  GG.MILESTONES = [
+    { id: 'pop5',  test: (s) => s.population >= 5,
+      msg: 'The warren swells to five. It is, suddenly, a crowd — and the crowd is yours.',
+      silly: 'Population: five. That is a whole HAND of goblins. You count them twice to be sure. Still five. Magnificent.' },
+    { id: 'pop10', test: (s) => s.population >= 10,
+      msg: 'Ten goblins now answer to you. The dark feels a great deal less dark.',
+      silly: 'Ten goblins. Double digits, baby. You have, against all odds and several health codes, a workforce.' },
+    { id: 'pop20', test: (s) => s.population >= 20,
+      msg: 'Twenty strong. The warren has the loud, warm chaos of a real tribe now.',
+      silly: 'Twenty goblins. This is no longer "a few lads." This is a SITUATION, and you are legally responsible for it.' },
+    { id: 'pop35', test: (s) => s.population >= 35,
+      msg: 'Thirty-five goblins. Strangers on the road lower their voices when they pass your wood.',
+      silly: 'Thirty-five goblins. You have achieved the population of a small, deeply concerning town. HR is just one tired goblin.' },
+    { id: 'hoard100', test: (s) => s.totals.shiniesTotal >= 100,
+      msg: 'A hundred shinies have passed through your hands. A proper little pouch of wealth.',
+      silly: 'One hundred shinies, lifetime. You have a POUCH now. You pat it. It jingles. Do not, under any circumstances, check the exchange rate.' },
+    { id: 'hoard500', test: (s) => s.totals.shiniesTotal >= 500,
+      msg: 'Five hundred shinies, all told. The hoard throws back a glow when the torches catch it.',
+      silly: 'Five hundred shinies. The hoard now makes a satisfying clink-avalanche when you flop into it. Yes, you flop into it. That is what it is FOR.' },
+    { id: 'hoard2000', test: (s) => s.totals.shiniesTotal >= 2000,
+      msg: 'Two thousand shinies have flowed through the warren. A goblin from a flooded hole, sitting on a real fortune.',
+      silly: 'Two thousand shinies. You have begun referring to the hoard as "the portfolio." Nobody is allowed to stop you. Nobody dares.' },
+    { id: 'tier2', test: (s, G) => G.settlementTier(s) >= 2,
+      msg: 'Tents and cook-fires spill past the cave mouth. From the road, your home finally looks like somewhere people live.',
+      silly: 'Your hole has TENTS now. This is basically real estate. You are, in a very loose legal sense, a developer.' },
+    { id: 'tier4', test: (s, G) => G.settlementTier(s) >= 4,
+      msg: 'Palisades, a market road, the clang of trade. They say "the goblins" with a capital G now.',
+      silly: 'You have walls and a market and a CAPITAL G. People say "the Goblins" with a small, tired sigh. Iconic. Unforgettable. A brand.' },
+    { id: 'tier6', test: (s, G) => G.settlementTier(s) >= 6,
+      msg: 'A lamp-lit city, loud and strange and gloriously alive. From a flooded hole to THIS. You did that.',
+      silly: 'A whole CITY. Lamps, streets, the works. From one damp puddle to a metropolis — frankly the glow-up is so unreal the bards refuse to believe it.' },
+    { id: 'builds5', test: (s, G) => G.distinctBuildings(s) >= 5,
+      msg: 'Five kinds of structure stand in the warren. It has the busy, lived-in look of a place with plans.',
+      silly: 'Five different buildings. You have a SKYLINE. A small, lumpy, structurally suspect skyline — but a skyline, and it is yours.' },
+    { id: 'firstGuest', test: (s) => { for (const rc in (s.races || {})) if (s.races[rc] > 0) return true; return false; },
+      msg: 'For the first time, a face that isn\'t green calls the warren home. The world is bigger inside your walls than out.',
+      silly: 'Someone who is NOT a goblin lives here now. On purpose! The warren is, technically, multicultural. The Totem is thrilled. The goblins are baffled.' },
+  ];
+
   // --- Chapter milestones ---------------------------------------
   // Advancing a chapter is what triggers story + (eventually) the finale.
   GG.CHAPTERS = [

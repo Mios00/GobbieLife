@@ -67,6 +67,7 @@
   setInterval(() => {
     if (!started || !state) return;
     Game.tick(state, C.tickMs / 1000);
+    for (const b of Game.drainBanners()) UI.fx.banner(b); // milestone fanfares
     UI.render(state);
   }, C.tickMs);
 

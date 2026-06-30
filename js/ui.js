@@ -22,6 +22,36 @@
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
+  // ---- juice: floating gains + milestone banners ----------------
+  // Pure presentation, created on the fly via the DOM (never innerHTML, so no
+  // escaping needed). Guarded so the headless test harness — which stubs only
+  // document.getElementById — is a harmless no-op rather than a crash.
+  UI.fx = {
+    floatText: function (x, y, text, cls) {
+      if (typeof document.createElement !== 'function') return;
+      const layer = $('fx'); if (!layer) return;
+      const el = document.createElement('div');
+      el.className = 'floater' + (cls ? ' ' + cls : '');
+      el.textContent = text;
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+      layer.appendChild(el);
+      if (typeof setTimeout === 'function') setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 950);
+    },
+    banner: function (text) {
+      if (typeof document.createElement !== 'function') return;
+      const layer = $('banners'); if (!layer) return;
+      const el = document.createElement('div');
+      el.className = 'banner';
+      const mark = document.createElement('span');
+      mark.className = 'bmark'; mark.textContent = '⚑';
+      el.appendChild(mark);
+      el.appendChild(document.createTextNode(' ' + text));
+      layer.appendChild(el);
+      if (typeof setTimeout === 'function') setTimeout(() => { if (el.parentNode) el.parentNode.removeChild(el); }, 3600);
+    },
+  };
+
   // ---------------------------------------------------------------
   UI.render = function (s) {
     renderHeader(s);
@@ -73,18 +103,32 @@
     return 'There is a crow lawyer. Do not ask. (You will ask.)';
   };
 
+  // displayed resource values ease toward the real ones so the hoard "rolls" up
+  // instead of snapping. Re-seeded on a new/imported tale (different state object).
+  let dispState = null, disp = null;
   function renderResources(s) {
     const r = Game.rates(s);
+    if (s !== dispState || !disp) {
+      dispState = s;
+      disp = { mushrooms: s.resources.mushrooms, scrap: s.resources.scrap, shinies: s.resources.shinies };
+    }
     const rows = ['mushrooms', 'scrap', 'shinies'].map((res) => {
       const def = GG.RESOURCES[res];
       const rate = r[res] || 0;
+      // ease toward the true value; snap on tiny deltas (done) or big jumps
+      // (offline catch-up, a raid payout, a build cost) so it never lags hard.
+      const actual = s.resources[res];
+      let shown = disp[res];
+      const dabs = Math.abs(actual - shown);
+      shown = (dabs < 0.5 || dabs > Math.max(40, actual * 0.4)) ? actual : shown + (actual - shown) * 0.3;
+      disp[res] = shown;
       // shinies are mostly lump-sum (raids/trade); only show a rate once
       // something produces them passively (the Brewery).
       const showRate = res !== 'shinies' || Math.abs(rate) > 0.0001;
       return `<div class="rrow" title="${esc(def.desc)}">
         <span class="rsym">${def.sym}</span>
         <span class="rname">${def.name}</span>
-        <span class="rval">${fmt(s.resources[res])}</span>
+        <span class="rval">${fmt(shown)}</span>
         <span class="rrate ${rate < 0 ? 'neg' : ''}">${showRate ? sign(rate) + '/s' : ''}</span>
       </div>`;
     }).join('');
@@ -439,7 +483,11 @@
       if (!t) return;
       const s = getState();
       const act = t.dataset.act;
-      if (act === 'manual') Game.manual(s, t.dataset.kind);
+      if (act === 'manual') {
+        Game.manual(s, t.dataset.kind);
+        const sym = t.dataset.kind === 'dig' ? GG.RESOURCES.scrap.sym : GG.RESOURCES.mushrooms.sym;
+        UI.fx.floatText(e.clientX, e.clientY, '+1 ' + sym);
+      }
       else if (act === 'assign') Game.assign(s, t.dataset.job, parseInt(t.dataset.d, 10));
       else if (act === 'build') Game.build(s, t.dataset.id, s.buyAmt || 1);
       else if (act === 'buyamt') s.buyAmt = t.dataset.n === 'max' ? 'max' : parseInt(t.dataset.n, 10);
