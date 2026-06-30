@@ -32,6 +32,21 @@ body {
 .meta { color: var(--dim); margin-top: 2px; }
 .meta b { color: var(--gold); }
 
+/* next-goal tracker — always know what to chase */
+.goalbar { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; margin-top: 8px;
+  font-size: 12.5px; color: var(--ink); }
+.goalmark { color: var(--moss); }
+.goaltxt { color: var(--ink); }
+.goalprog { color: var(--gold); font-weight: bold; }
+.goaldest { color: var(--dim); }
+.goalbar .gbar { flex: 1 1 120px; min-width: 90px; max-width: 220px; height: 6px; margin: 0;
+  background: #0d100a; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.goalbar .gbar > span { display: block; height: 100%; background: var(--moss); transition: width .3s linear; }
+
+/* onboarding tip — gentle first-minutes guidance, retires on its own */
+.onbtip { color: var(--moss); background: rgba(123,211,106,.07); border: 1px dashed var(--line);
+  border-radius: 5px; padding: 7px 9px; font-size: 12px; line-height: 1.45; margin: 0 0 8px; }
+
 /* layout */
 #grid { display: grid; grid-template-columns: 1fr 1fr 1.15fr; gap: 14px; align-items: start; }
 .col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }

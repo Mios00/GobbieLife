@@ -202,7 +202,9 @@ loop. Detailed scopes for `E*`/`T*` remain in `ROADMAP.md`.
    per-building multiplicative re-balance is deferred to a focused tuning pass —
    the milestone ladder already delivers the orders-of-magnitude escalation
    without touching pinned base rates.)*
-3. **F3 — Next-goal tracker + onboarding.** Surface chapter reqs; guided opening.
+3. **F3 — Next-goal tracker + onboarding.** ✅ `Game.nextGoal` header goal strip
+   (chapter requirement + progress) and `Game.onboardingTip` self-retiring early
+   guidance. Derived, no new state. *(Shipped 2026-06-30.)*
 4. **F4 — Story-delivery split.** Saga vs World; moment-cards + banners; pacing.
 5. **E3 — Hold (grip) + succession.** *(Already next; the heir now also feeds L1.)*
 6. **E4 — The Reckoning content + the Final Choice.** The climax of one life.
