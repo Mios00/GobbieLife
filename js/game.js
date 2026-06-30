@@ -10,12 +10,20 @@
   const C = GG.CONFIG;
   const Game = (GG.Game = {});
 
+  // the two clocks, rolled fresh each tale: your lifespan and the Comet's.
+  function freshMortality() {
+    const ls = C.lifespanMinSec + Math.random() * C.lifespanVarSec;
+    const ct = C.cometMinSec + Math.random() * C.cometVarSec;
+    return { lifespan: ls, comet: { left: ct, total: ct, warned: 0 } };
+  }
+
   // ---- fresh state ---------------------------------------------
   // `silliness` is the Silliness Index (0..1) the player sets before starting:
   // the probability that any narrative draw uses the silly/satirical register.
   function newState(silliness) {
     silliness = (silliness == null) ? 0.3 : Math.max(0, Math.min(1, silliness));
     const legend = GG.Story.makeLegend(silliness);
+    const mort = freshMortality();
     return {
       version: 1,
       startedAt: Date.now(),
@@ -59,6 +67,11 @@
       chronCount: 0,       // monotonic entry counter (UI dedup key)
       lastOracle: null,    // most recent Oracle riddle (shown in place of a destiny meter)
       endgame: { active: false, stage: 0, accum: 0 }, // The Reckoning (endgame act)
+      age: 0,              // protagonist's age (seconds of active play)
+      lifespan: mort.lifespan, // when old age claims you (active-play seconds)
+      renown: 0,           // your growing legend
+      twilight: 0,         // how many twilight portents have been told (0..2)
+      comet: mort.comet,   // the Prophesied Year countdown (world doom)
       ending: null,        // set when game is finished
       log: [],             // short transient action feedback
     };
@@ -360,6 +373,7 @@
     const tgt = s.raid.target;
     s.raid = { active: false, returnsAt: 0, target: null };
     s.raidCount += 1;
+    s.renown = (s.renown || 0) + 2; // raids make a name for you, for good or ill
     // surface the choice to the player (silly or earnest face)
     const v = pickVariant(tgt, s);
     s.pendingChoice = {
@@ -685,6 +699,42 @@
     else Game.finish(s); // out of beats → resolve (E4 will insert the Final Choice here)
   }
 
+  // your mortality + the Comet — two clocks. If either runs out it ushers in
+  // the Reckoning (the third road being the Great Hall itself). Both advance
+  // only during active play (never offline), so you can't die while away.
+  let renownAccum = 0;
+  function tickMortality(s, dt) {
+    if (s.ending || s.age == null) return;
+    s.age += dt;
+    renownAccum += dt;
+    if (renownAccum >= (C.renownEverySec || 30)) {
+      renownAccum = 0;
+      s.renown = (s.renown || 0) + 1 + Game.settlementTier(s); // legend grows with grandeur
+    }
+    // twilight portents as your end nears
+    const r = s.age / Math.max(1, s.lifespan);
+    if (r >= 0.9 && (s.twilight || 0) < 2) { s.twilight = 2; chronicle(s, GG.Story.twilightBeat(2, s.silliness)); }
+    else if (r >= 0.75 && (s.twilight || 0) < 1) { s.twilight = 1; chronicle(s, GG.Story.twilightBeat(1, s.silliness)); }
+    // the Comet (world doom), with rising portents
+    if (s.comet && s.comet.total > 0) {
+      s.comet.left = Math.max(0, s.comet.left - dt);
+      const cl = s.comet.left / s.comet.total;
+      const stage = cl <= 0 ? 4 : cl < 0.1 ? 3 : cl < 0.25 ? 2 : cl < 0.5 ? 1 : 0;
+      if (stage > (s.comet.warned || 0) && stage < 4) { s.comet.warned = stage; chronicle(s, GG.Story.cometBeat(stage, s.silliness)); }
+      if (s.comet.left <= 0 && !s.endgame.active) {
+        s.comet.warned = 4;
+        chronicle(s, 'The comet falls. The Prophesied Year has come, and the world will not be the same by morning. The Reckoning is upon you.');
+        Game.beginReckoning(s);
+        return;
+      }
+    }
+    // death of old age
+    if (s.age >= s.lifespan && !s.endgame.active) {
+      chronicle(s, 'And then, one quiet morning, the runt from the flooded hole simply does not wake. A whole impossible, ridiculous, legendary life reaches its end — and the tale rushes now to its Reckoning.');
+      Game.beginReckoning(s);
+    }
+  }
+
   // ---- finale ---------------------------------------------------
   Game.finish = function (s) {
     if (s.endgame) s.endgame.active = false;
@@ -710,6 +760,7 @@
     tickWorldNews(s, dtSec);
     tickNotables(s, dtSec);
     tickReckoning(s, dtSec);
+    tickMortality(s, dtSec);
     tickEvents(s, dtSec);
     const tp = Game.totalPop(s);
     if (tp > (s.peakPop || 0)) s.peakPop = tp; // peak whole-tribe size gates building reveals
@@ -868,6 +919,14 @@
     // the Reckoning act state
     const eg = (m.endgame && typeof m.endgame === 'object') ? m.endgame : {};
     m.endgame = { active: bool(eg.active), stage: intNonneg(eg.stage), accum: nonneg(eg.accum) };
+    // mortality + the Comet
+    m.age = nonneg(m.age);
+    m.lifespan = Math.max(60, nonneg(m.lifespan, C.lifespanMinSec || 3000));
+    m.renown = nonneg(m.renown);
+    m.twilight = Math.max(0, Math.min(2, intNonneg(m.twilight)));
+    const cm = (m.comet && typeof m.comet === 'object') ? m.comet : {};
+    const ctot = Math.max(60, nonneg(cm.total, C.cometMinSec || 3600));
+    m.comet = { total: ctot, left: Math.max(0, Math.min(ctot, nonneg(cm.left, ctot))), warned: Math.max(0, Math.min(4, intNonneg(cm.warned))) };
     m.log = Array.isArray(m.log) ? m.log.filter((x) => typeof x === 'string').slice(0, 4) : [];
     m.chronicle = Array.isArray(m.chronicle)
       ? m.chronicle.filter((c) => c && typeof c.msg === 'string')

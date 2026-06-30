@@ -365,4 +365,37 @@
     const pool = silly(sill) ? RECKONING_SILLY : RECKONING;
     return (stage >= 0 && stage < pool.length) ? pool[stage] : null;
   };
+
+  // --- the two clocks: your mortality, and the Comet ------------
+  const TWILIGHT = {
+    earnest: [
+      'Your bones ache in the cold now, and the young goblins glance at you with a new, wary tenderness. You are not what you were.',
+      'You catch your reflection in a still pool and do not, for a moment, know the old goblin looking back. The years have come for you, as they come for all.',
+    ],
+    silly: [
+      'Your knees now forecast the weather and your back has filed three formal complaints. The young goblins have started calling you "sir" in a tone you do not care for.',
+      'You caught your reflection in a puddle and genuinely asked it who it was. The puddle, tactfully, declined to answer. The years are winning.',
+    ],
+  };
+  S.twilightBeat = function (stage, sill) {
+    const p = silly(sill) ? TWILIGHT.silly : TWILIGHT.earnest;
+    return p[Math.max(0, Math.min(stage - 1, p.length - 1))];
+  };
+
+  const COMET = {
+    earnest: [
+      'A new star hangs low in the south, the wanderers say, and it was not there before. The old ones have stopped joking about it.',
+      'The comet is unmistakable now — a cold, bright wound in the sky. Birds fly strangely, caravans hurry, and everyone pretends not to look up.',
+      'The comet fills half the night and throws shadows at midnight. Whatever it heralds is nearly here. The warren keeps one eye always upward.',
+    ],
+    silly: [
+      'There is a new star down south that everyone agrees was NOT there last week. The old ones have gone ominously quiet, which is so much worse than their usual.',
+      'The comet is now extremely noticeable, like a cosmic unread-notification badge. Birds are acting weird. Caravans are speed-walking. Nobody is making eye contact with the sky.',
+      'The comet now takes up half the night and casts shadows at midnight, which is just RUDE of it. Whatever it means is nearly here and it did not RSVP.',
+    ],
+  };
+  S.cometBeat = function (stage, sill) {
+    const p = silly(sill) ? COMET.silly : COMET.earnest;
+    return p[Math.max(0, Math.min(stage - 1, p.length - 1))];
+  };
 })();

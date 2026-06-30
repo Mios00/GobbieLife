@@ -189,6 +189,9 @@ button { font-family: inherit; cursor: pointer; }
 
 .silly { color: var(--gold); }
 .reckon { color: var(--blood); font-weight: bold; letter-spacing: 1px; }
+.renown { color: var(--gold); }
+.twilight { color: var(--dim); }
+.cometw { color: var(--blood); }
 
 /* start screen — the Silliness Index dial */
 #start { position: fixed; inset: 0; background: radial-gradient(circle at 50% 30%, #1a2114, #0b0d08 80%);
