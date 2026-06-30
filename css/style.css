@@ -243,8 +243,27 @@ button { font-family: inherit; cursor: pointer; }
 .silly { color: var(--gold); }
 .reckon { color: var(--blood); font-weight: bold; letter-spacing: 1px; }
 .renown { color: var(--gold); }
+.sagatag { color: var(--moss); font-size: 11px; }
 .twilight { color: var(--dim); }
 .cometw { color: var(--blood); }
+.life-label { color: var(--dim); font-size: 11px; text-align: center; letter-spacing: 2px; margin-bottom: 4px; }
+
+/* legacy / legend-tree section (between ending text and next-life button) */
+.legacy-section { border-top: 1px dotted var(--line); margin-top: 18px; padding-top: 14px; }
+.legacy-h { color: var(--gold); font-size: 15px; margin: 0 0 6px; }
+.legacy-pool { color: var(--gold); font-size: 13px; margin: 0 0 10px; }
+.legend-tree { display: grid; gap: 5px; margin-bottom: 14px; }
+.lt-upg { display: grid; grid-template-columns: 34px 1fr; gap: 4px 8px; align-items: start;
+           padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg2); }
+.lt-upg.affordable { border-color: var(--gold); }
+.lt-upg.owned { opacity: 0.55; border-style: dashed; }
+.lt-cost { font-size: 12px; color: var(--gold); font-weight: bold; align-self: center; text-align: center; }
+.lt-body { display: flex; flex-direction: column; gap: 2px; }
+.lt-name { font-size: 12px; color: var(--ink); }
+.lt-desc { font-size: 11px; color: var(--dim); }
+.lt-owned { font-size: 11px; color: var(--moss); margin-top: 3px; }
+.lt-buy { font-size: 11px; padding: 2px 8px; margin-top: 3px; align-self: start; width: auto; }
+.succession-btn { margin-top: 8px; }
 
 /* start screen — the Silliness Index dial */
 #start { position: fixed; inset: 0; background: radial-gradient(circle at 50% 30%, #1a2114, #0b0d08 80%);

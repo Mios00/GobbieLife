@@ -29,6 +29,7 @@
     breedSecPerGoblin: 9,    // seconds of progress to spawn a goblin
     eventMinSec: 45,         // soonest a random event can interrupt (more frequent now)
     eventMaxSec: 95,         // latest before one is guaranteed
+    sagaLives: 4,            // total lives in a full Saga before the meta-finale
   };
 
   // --- Resources -------------------------------------------------
@@ -908,4 +909,26 @@
       score: (s) => s.stats.cruelty * 1.6 + s.stats.greed * 1.2 + s.raidCount * 0.4 - s.stats.openness * 1.6,
     },
   };
+
+  // --- Legend Tree (L3) ------------------------------------------
+  // Permanent meta-upgrades purchased with ✦ Legend between lives.
+  // Sized so a full Saga can buy most of them without grinding.
+  GG.LEGEND_TREE = [
+    { id: 'prod_boost',    name: 'Ancestral Know-How',      cost: 2,
+      desc: '+20% production at the start of each new life.' },
+    { id: 'start_raids',   name: 'War in the Blood',         cost: 3,
+      desc: 'Raids unlock from the very first morning of a new life.' },
+    { id: 'start_trade',   name: 'The Trading Blood',        cost: 3,
+      desc: 'Trade unlocks from the very first morning of a new life.' },
+    { id: 'faction_floor', name: 'A Known Name',             cost: 4,
+      desc: 'All factions start no lower than Wary (−20) in each new life.' },
+    { id: 'pop_start',     name: 'A Warren Already Waiting', cost: 4,
+      desc: 'Begin each new life with 3 goblins instead of 1.' },
+    { id: 'renown_boost',  name: 'A Name Worth Speaking',    cost: 3,
+      desc: 'Renown from all deeds and raids is doubled.' },
+    { id: 'offline_cap',   name: 'The Tireless Horde',       cost: 2,
+      desc: 'Offline catch-up extended from 8 h to 24 h.' },
+    { id: 'heir_bonus',    name: 'In Your Blood',            cost: 5,
+      desc: 'Succeeding as the named heir grants +40 cruelty (predecessor\'s fearsome reputation) at the start.' },
+  ];
 })();

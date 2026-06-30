@@ -515,4 +515,28 @@
     const p = silly(sill) ? COMET.silly : COMET.earnest;
     return p[Math.max(0, Math.min(stage - 1, p.length - 1))];
   };
+
+  // --- Heir succession intros (L1) --------------------------------
+  // Rendered as the new life's legendIntro when the protagonist is the named heir.
+  const HEIR_INTRO = {
+    earnest: [
+      'You are #HEIRNAME#, #HEIRROLE# and inheritor of #FOUNDERNAME#\'s legacy. The warren they built still stands. What you do with it — that is the open question.',
+      '#HEIRNAME#. You watched #FOUNDERNAME# build this place from dirt and spite. Now the warren is yours. The name is yours. The debts are also, unfortunately, yours.',
+      'They called #FOUNDERNAME# #ENDING#. You are #HEIRNAME# — you were beside them at the end. Now the tide is yours to read, and to swim against.',
+    ],
+    silly: [
+      'You are #HEIRNAME#, #HEIRROLE#, which technically makes you the most important goblin here, a fact you are going to have to explain to everyone individually and repeatedly. #FOUNDERNAME# left you a settlement, a ledger full of increasingly creative accounting, and a note that just says "good luck."',
+      '#HEIRNAME#. #FOUNDERNAME# was technically #ENDING# and now you are technically in charge, which means this is technically your problem. The goblins are watching you with what you have decided to interpret as confidence.',
+      'Congratulations, #HEIRNAME#. You are the new boss. The old boss (#FOUNDERNAME#) is gone in a way that everyone is describing as "epic" but also "kind of a lot." The warren is yours. No take-backs.',
+    ],
+  };
+
+  S.heirIntro = function (heirNotable, founder, silliness) {
+    const pool = silly(silliness) ? HEIR_INTRO.silly : HEIR_INTRO.earnest;
+    return pick(pool)
+      .replace(/#HEIRNAME#/g, heirNotable.name)
+      .replace(/#HEIRROLE#/g, heirNotable.role || 'the successor')
+      .replace(/#FOUNDERNAME#/g, founder.name || 'the founder')
+      .replace(/#ENDING#/g, founder.endingName || 'gone');
+  };
 })();
