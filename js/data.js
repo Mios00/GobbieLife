@@ -30,6 +30,8 @@
     eventMinSec: 45,         // soonest a random event can interrupt (more frequent now)
     eventMaxSec: 95,         // latest before one is guaranteed
     sagaLives: 4,            // total lives in a full Saga before the meta-finale
+    sagaBreakLegend: 10,     // lifetime ✦ Legend needed to unlock the "break the Bargain" finale door
+    sagaTurnLegend: 16,      // lifetime ✦ Legend needed to unlock the "turn the Bargain" finale door
   };
 
   // --- Resources -------------------------------------------------
@@ -37,6 +39,9 @@
     mushrooms: { name: 'Mushrooms', sym: '✿', desc: 'Food. Fuel for goblins and breeding.' },
     scrap:     { name: 'Scrap',     sym: '⚒', desc: 'Salvage. Used to build almost everything.' },
     shinies:   { name: 'Shinies',   sym: '◈', desc: 'Loot & coin. Won by raiding and trading.' },
+    ash:       { name: 'Ash',       sym: '~',  desc: 'Cinder and char from organized salvage. Feed it to the Smelter.' },
+    iron:      { name: 'Iron',      sym: '⚙',  desc: 'Wrought metal. The currency of the industrial age.' },
+    grit:      { name: 'Grit',      sym: '▪',  desc: 'Industrial upkeep. Keep it above zero or Era-2 output suffers.' },
   };
 
   // --- Jobs (population assignments) -----------------------------
@@ -235,6 +240,21 @@
       revealPop: 12,
       unlocks: 'finale',
       settle: 2,
+    },
+    // F8 — Era-2 refinement chain (unlocked by Breach the Surface breakthrough)
+    scrapyard: {
+      name: 'Scrapyard', role: 'producer', requires: 'era2', max: 2,
+      blurb: 'Organized salvage heaps. Produces ash for the Smelter and keeps industrial machinery running (Grit).',
+      base: { scrap: 160, mushrooms: 80 }, growth: 1.8,
+      prod: { ash: 1.0, grit: 0.25 },
+      settle: 1,
+    },
+    smelter: {
+      name: 'Smelter', role: 'converter', requires: 'era2', max: 3,
+      blurb: 'Reduces scrap and ash into iron each tick. Needs Grit upkeep.',
+      base: { scrap: 200, mushrooms: 100 }, growth: 1.85,
+      convert: { from: { scrap: 2, ash: 1 }, to: { iron: 0.5 } },
+      settle: 1,
     },
   };
 
@@ -908,6 +928,17 @@
       name: 'The Goblin That Loomed',
       score: (s) => s.stats.cruelty * 1.6 + s.stats.greed * 1.2 + s.raidCount * 0.4 - s.stats.openness * 1.6,
     },
+  };
+
+  // --- Saga endings (L4) -----------------------------------------
+  // The TRUE meta-endings, reached only after the final life's Reckoning, when the
+  // Bargain comes due. Distinct from the per-life GG.ENDINGS. The doors a player
+  // can take are gated by cumulative deeds/Legend (Game.sagaFinaleOptions); 'pay'
+  // is always available, 'break'/'turn' must be earned across the Saga.
+  GG.SAGA_ENDINGS = {
+    pay:   { name: 'The Price Paid' },
+    break: { name: 'The Bargain Broken' },
+    turn:  { name: 'The Bargain Turned' },
   };
 
   // --- Legend Tree (L3) ------------------------------------------

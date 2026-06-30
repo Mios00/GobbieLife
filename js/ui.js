@@ -78,6 +78,9 @@
       disp.mushrooms = s.resources.mushrooms;
       disp.scrap = s.resources.scrap;
       disp.shinies = s.resources.shinies;
+      disp.ash  = s.resources.ash  || 0;
+      disp.iron = s.resources.iron || 0;
+      disp.grit = s.resources.grit || 0;
     }
   };
 
@@ -154,7 +157,8 @@
     const r = Game.rates(s);
     if (s !== dispState || !disp) {
       dispState = s;
-      disp = { mushrooms: s.resources.mushrooms, scrap: s.resources.scrap, shinies: s.resources.shinies };
+      disp = { mushrooms: s.resources.mushrooms, scrap: s.resources.scrap, shinies: s.resources.shinies,
+               ash: s.resources.ash || 0, iron: s.resources.iron || 0, grit: s.resources.grit || 0 };
       dispT = 0;
     }
     // frame-rate-independent easing: the render loop now runs at the display's
@@ -186,12 +190,34 @@
         <span class="rrate ${rate < 0 ? 'neg' : ''}">${showRate ? sign(rate) + '/s' : ''}</span>
       </div>`;
     }).join('');
+    // era-2 resources (ash/iron/grit): always eased for smooth transitions,
+    // only rendered once Era 2 is reached.
+    for (const res of ['ash', 'iron', 'grit']) {
+      const actual = s.resources[res] || 0;
+      let shown = disp[res] || 0;
+      const dabs = Math.abs(actual - shown);
+      shown = (dabs < 0.5 || dabs > Math.max(40, Math.abs(actual) * 0.4)) ? actual : shown + (actual - shown) * k;
+      disp[res] = shown;
+    }
+    const era2Rows = (Game.era(s) >= 2) ? ['ash', 'iron', 'grit'].map((res) => {
+      const def = GG.RESOURCES[res];
+      const rate = r[res] || 0;
+      const shown = disp[res] || 0;
+      const showRate = Math.abs(rate) > 0.0001;
+      const isGritNeg = res === 'grit' && (s.resources.grit || 0) < 0;
+      return `<div class="rrow${isGritNeg ? ' grit-starved' : ''}" title="${esc(def.desc)}">
+        <span class="rsym">${def.sym}</span>
+        <span class="rname">${def.name}</span>
+        <span class="rval">${fmt(shown)}</span>
+        <span class="rrate ${rate < 0 ? 'neg' : ''}">${showRate ? sign(rate) + '/s' : ''}</span>
+      </div>`;
+    }).join('') : '';
     // caption: the hoard's magnitude rank + your prosperity multiplier so the
     // escalation is legible at a glance (a Pouch → a Dragon's Hoard · ×8).
     const mult = Game.globalMult(s);
     const tier = Game.magnitude(s.totals.shiniesTotal);
     const multStr = mult > 1.0001 ? ` · ×${mult < 10 ? mult.toFixed(1) : Math.round(mult)} prod` : '';
-    setHTML($('resources'), 'resources', `<h2>Hoard <span class="cap">${esc(tier + multStr)}</span></h2>${rows}`);
+    setHTML($('resources'), 'resources', `<h2>Hoard <span class="cap">${esc(tier + multStr)}</span></h2>${rows}${era2Rows}`);
   }
 
   function renderGoblins(s) {
@@ -342,6 +368,8 @@
       const lvl = s.buildings[id];
       const single = Game.buildingCost(s, id); // null when maxed
       const maxed = !single;
+      // era-2 buildings hidden until the breakthrough is owned
+      if (def.requires && !(s.breakthroughs && s.breakthroughs[def.requires])) continue;
       const chapterLock = def.requiresChapter && s.chapter < def.requiresChapter;
       const needLock = def.needs && !s.unlocks[def.needs];
       const locked = chapterLock || needLock;
@@ -503,11 +531,41 @@
     </div>`;
   }
 
+  // render a choice modal (the Final Choice E4 and the Bargain meta-choice L4
+  // both flow through here; styling keys off _isFinalChoice / _isSagaFinale).
+  function renderChoiceCard(el, s, pc) {
+    el.style.display = 'flex';
+    const isFinal = !!pc._isFinalChoice;
+    const isSaga = !!pc._isSagaFinale;
+    const opts = pc.options.map((o, i) => {
+      const ok = !o.cost || Game.canAfford(s, o.cost);
+      const costStr = o.cost
+        ? ` <span class="ocost ${ok ? '' : 'short'}">(${Object.entries(o.cost)
+            .filter(([res]) => GG.RESOURCES[res])  // ignore unknown resource keys
+            .map(([res, n]) => fmt(n) + GG.RESOURCES[res].sym).join(' ')})</span>`
+        : '';
+      const cls = (isFinal || isSaga) ? 'act final-opt' : 'act';
+      return `<button class="${cls}" data-act="choice" data-i="${i}" ${ok ? '' : 'disabled'}>${esc(o.label)}${costStr}</button>`;
+    }).join('');
+    el.innerHTML = `<div class="card${isFinal ? ' final-choice' : ''}${isSaga ? ' saga-choice' : ''}">
+      <h1>${esc(pc.title)}</h1>
+      <p>${esc(pc.text)}</p>
+      <div class="choices">${opts}</div>
+    </div>`;
+  }
+
   function renderModal(s) {
     const el = $('modal');
-    const obj = s.ending || s.pendingChoice || null;
+    // precedence: the true Saga ending (L4) > the Bargain meta-choice (shown over
+    // the final life's ending card) > a per-life ending card > any other choice.
+    const sagaChoice = (s.pendingChoice && s.pendingChoice._isSagaFinale) ? s.pendingChoice : null;
+    const obj = s.sagaEnding || sagaChoice || s.ending || s.pendingChoice || null;
     let afford = '';
-    if (s.ending) {
+    if (s.sagaEnding) {
+      afford = 'saga-end';
+    } else if (sagaChoice) {
+      afford = sagaChoice.options.map((o) => (!o.cost || Game.canAfford(s, o.cost)) ? '1' : '0').join('');
+    } else if (s.ending) {
       const maxLives = (GG.CONFIG && GG.CONFIG.sagaLives) || 4;
       const isLast = (s.sagaLife || 1) >= maxLives;
       // dedup key includes legend pool + spent so buying an upgrade refreshes the tree
@@ -520,14 +578,35 @@
     lastModalObj = obj;
     lastModalAfford = afford;
 
+    // the true Saga ending (L4) — the whole tale, with its roll of remembered lives
+    if (s.sagaEnding) {
+      el.style.display = 'flex';
+      const founders = (s.founders || []).filter(Boolean);
+      const lines = founders.map((f) =>
+        `<div class="founder-line"><b>${esc(f.name)}</b> — ${esc(f.endingName || 'a life lived')} <span class="founder-life">Life ${f.lifeNum}</span></div>`).join('')
+        + `<div class="founder-line current"><b>${esc(s.name)}</b> — ${esc(s.ending ? s.ending.name : 'the last life')} <span class="founder-life">Life ${s.sagaLife || 1}</span></div>`;
+      const roll = `<div class="founders-roll"><h2 class="founders-h">The Saga's Remembered</h2>${lines}</div>`;
+      el.innerHTML = `<div class="card ending saga-ending">
+        <div class="life-label">The Saga Ends</div>
+        <h1>${esc(s.sagaEnding.name)}</h1>
+        ${s.sagaEnding.text.map((p) => `<p>${esc(p)}</p>`).join('')}
+        ${roll}
+        <button class="act" data-act="restart">Begin a new Saga →</button>
+      </div>`;
+      return;
+    }
+    // the Bargain meta-choice (L4) — rendered over the final life's ending card
+    if (sagaChoice) { renderChoiceCard(el, s, sagaChoice); return; }
+
     if (s.ending) {
       const maxLives = (GG.CONFIG && GG.CONFIG.sagaLives) || 4;
       const isLast = (s.sagaLife || 1) >= maxLives;
       el.style.display = 'flex';
       const lifeLabel = `Life ${s.sagaLife || 1} of ${maxLives}`;
+      // on the final life the Legend tree is hidden — the Bargain, not another life, awaits
       const treeHtml = isLast ? '' : renderLegendTree(s);
       const nextBtn = isLast
-        ? `<button class="act" data-act="restart">Begin a new goblin's tale →</button>`
+        ? `<button class="act succession-btn" data-act="sagaFinale">Face the Bargain →</button>`
         : `<button class="act succession-btn" data-act="succession">Begin Life ${(s.sagaLife || 1) + 1} of ${maxLives} →</button>`;
       el.innerHTML = `<div class="card ending">
         <div class="life-label">${esc(lifeLabel)}</div>
@@ -542,26 +621,7 @@
       </div>`;
       return;
     }
-    if (s.pendingChoice) {
-      const pc = s.pendingChoice;
-      el.style.display = 'flex';
-      const isFinal = !!pc._isFinalChoice;
-      const opts = pc.options.map((o, i) => {
-        const ok = !o.cost || Game.canAfford(s, o.cost);
-        const costStr = o.cost
-          ? ` <span class="ocost ${ok ? '' : 'short'}">(${Object.entries(o.cost)
-              .filter(([res]) => GG.RESOURCES[res])  // ignore unknown resource keys
-              .map(([res, n]) => fmt(n) + GG.RESOURCES[res].sym).join(' ')})</span>`
-          : '';
-        return `<button class="${isFinal ? 'act final-opt' : 'act'}" data-act="choice" data-i="${i}" ${ok ? '' : 'disabled'}>${esc(o.label)}${costStr}</button>`;
-      }).join('');
-      el.innerHTML = `<div class="card${isFinal ? ' final-choice' : ''}">
-        <h1>${esc(pc.title)}</h1>
-        <p>${esc(pc.text)}</p>
-        <div class="choices">${opts}</div>
-      </div>`;
-      return;
-    }
+    if (s.pendingChoice) { renderChoiceCard(el, s, s.pendingChoice); return; }
     el.style.display = 'none';
     el.innerHTML = '';
   }
@@ -630,6 +690,7 @@
       else if (act === 'clearHeir') Game.clearHeir(s);
       else if (act === 'buyLegend') { Game.buyLegend(s, t.dataset.id); lastModalObj = null; }
       else if (act === 'succession') { Game.succession(s); lastModalObj = null; _memo = Object.create(null); }
+      else if (act === 'sagaFinale') { Game.beginSagaFinale(s); lastModalObj = null; }
       else if (act === 'restart') onChange('restart');
       else if (act === 'export') onChange('export');
       else if (act === 'import') onChange('import');
