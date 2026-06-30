@@ -256,12 +256,44 @@
       const t = (GG.NOTABLE.traits || []).find((x) => x.id === id);
       return t ? t.adj : '';
     };
-    const rows = list.map((nb) => `<div class="nrow">
+    const heirId = s.heir || null;
+    const rows = list.map((nb) => {
+      const isHeir = nb.id === heirId;
+      const heirBtn = isHeir
+        ? `<button class="mini2 heir-clear" data-act="clearHeir" title="Release from heir's mantle">✦ Heir ✕</button>`
+        : `<button class="mini2 heir-set" data-act="nameHeir" data-id="${nb.id}" title="Name as heir">Name heir</button>`;
+      return `<div class="nrow${isHeir ? ' nrow-heir' : ''}">
         <span class="nmark">☗</span>
         <span class="ntext"><b>${esc(GG.Story.notableTitle(nb))}</b><span class="ndesc">${esc(adjOf(nb.trait))} · ${ageWord(nb)}</span></span>
-      </div>`).join('');
+        ${heirBtn}
+      </div>`;
+    }).join('');
+
+    // hold / grip panel (visible once there are notables)
+    const hold = Math.round(Game.holdScore(s));
+    const tier = esc(Game.holdTier(s));
+    const tierCls = hold < 20 ? 'hold-crit' : hold < 45 ? 'hold-low' : hold < 70 ? 'hold-mid' : 'hold-high';
+    const res = Math.round(s.resentment || 0);
+    const heirNb = heirId ? list.find((n) => n.id === heirId) : null;
+    const heirLine = heirNb
+      ? `<span class="heir-name">Heir: <b>${esc(GG.Story.notableTitle(heirNb))}</b></span>`
+      : `<span class="heir-none">No heir — the succession is unclear</span>`;
+    const resHtml = res > 5
+      ? `<div class="res-row"><span class="res-label">Resentment</span><div class="bar rbar"><span class="rfill" style="width:${res}%"></span></div></div>`
+      : '';
+    const holdHtml = `<div class="hold-panel">
+      <div class="hold-row">
+        <span class="hold-label">Grip</span>
+        <div class="bar hbar"><span class="hfill ${tierCls}" style="width:${hold}%"></span></div>
+        <span class="hold-tier ${tierCls}">${tier}</span>
+      </div>
+      ${resHtml}
+      <div class="heir-row">${heirLine}</div>
+    </div>`;
+
     setHTML(el, 'notables', `<h2>Notable Goblins <span class="cap">${list.length}/${Game.notableCap(s)}</span></h2>${rows}
-      <div class="hint">They live, squabble, age, and pass on. Watch the Chronicle for their deeds.</div>`);
+      ${holdHtml}
+      <div class="hint">Name an heir to steady the succession. Hold rises with cruelty, loyalty, and renown.</div>`);
   }
 
   function renderActions(s) {
@@ -554,6 +586,8 @@
       else if (act === 'raid') Game.launchRaid(s);
       else if (act === 'trade') Game.trade(s, t.dataset.kind);
       else if (act === 'choice') Game.resolveChoice(s, parseInt(t.dataset.i, 10));
+      else if (act === 'nameHeir') Game.nameHeir(s, parseInt(t.dataset.id, 10));
+      else if (act === 'clearHeir') Game.clearHeir(s);
       else if (act === 'restart') onChange('restart');
       else if (act === 'export') onChange('export');
       else if (act === 'import') onChange('import');

@@ -76,6 +76,8 @@
       ending: null,        // set when game is finished
       eraSeen: {},         // which era transitions have bannered (keys: 2, 3)
       breakthroughs: {},   // which GG.BREAKTHROUGHS have fired (keyed by id)
+      heir: null,          // id of designated successor notable (integer) or null
+      resentment: 0,       // accumulated unrest (0–100); erodes hold
       log: [],             // short transient action feedback
     };
   }
@@ -300,6 +302,44 @@
     if (t <= 1) return 1;
     if (t <= 4) return 2;
     return 3;
+  };
+
+  // ---- hold (grip) — derived from cruelty, openness, renown, resentment ----
+  // fear-component: cruelty (capped 50), loyalty-component: openness (capped 25),
+  // deeds-component: renown (capped 15). Resentment erodes the total. 0–100.
+  Game.holdScore = function (s) {
+    const c = Math.min(50, (s.stats.cruelty || 0) * 0.5);
+    const o = Math.min(25, (s.stats.openness || 0) * 0.25);
+    const d = Math.min(15, (s.renown || 0) * 0.15);
+    return Math.max(0, Math.min(100, c + o + d - (s.resentment || 0)));
+  };
+
+  Game.holdTier = function (s) {
+    const h = Game.holdScore(s);
+    if (h < 20) return 'Crumbling';
+    if (h < 45) return 'Tenuous';
+    if (h < 70) return 'Steady';
+    return 'Iron Grip';
+  };
+
+  Game.nameHeir = function (s, id) {
+    const nb = (s.notables || []).find((n) => n.id === id);
+    if (!nb) return;
+    const prevNb = s.heir != null ? (s.notables.find((n) => n.id === s.heir) || null) : null;
+    s.heir = nb.id;
+    if (prevNb) {
+      chronicle(s, `${nb.name} ${nb.role} is named heir, replacing ${prevNb.name}. Loyalties in the warren shift like shadows.`, 'event');
+    } else {
+      chronicle(s, `${nb.name} ${nb.role} is named heir — the succession is no longer in doubt. The warren exhales as one.`, 'milestone');
+      s.resentment = Math.max(0, (s.resentment || 0) - 10);
+    }
+  };
+
+  Game.clearHeir = function (s) {
+    if (s.heir == null) return;
+    const nb = (s.notables || []).find((n) => n.id === s.heir);
+    s.heir = null;
+    if (nb) chronicle(s, `${nb.name} is released from the heir's mantle. The succession is once again uncertain.`, 'event');
   };
 
   // ---- next-goal tracker (clarity / onboarding) ----------------
@@ -676,6 +716,11 @@
     if (s.population > 1) s.population -= 1;           // an old goblin truly passes
     s.stats.openness += 0.5;                            // wisdom handed down softens the warren
     chronicle(s, `${nb.name} ${nb.role}, once ${tr.adj.toLowerCase()}, dies old and full of years and stolen soup. The young ones repeat their stories by the fire — getting half of it wrong, which is how stories survive.`, 'event');
+    if (s.heir === nb.id) {
+      s.heir = null;
+      s.resentment = Math.min(100, (s.resentment || 0) + 20);
+      chronicle(s, `The named heir is gone. The warren grows unsettled — every ambitious goblin imagines themselves in that empty seat.`, 'portent');
+    }
   }
 
   let notableAccum = 0;
@@ -705,6 +750,35 @@
     }
     // 4) someone does something in-character
     if (s.notables.length && Math.random() < 0.55) notableActs(s, pickOne(s.notables));
+  }
+
+  // ---- hold tick (resentment decay + betrayal rolls) ----------
+  let holdAccum = 0;
+  function tickHold(s, dt) {
+    if (s.ending) return;
+    // resentment decays passively; a named living heir calms it faster
+    const decay = s.heir != null && (s.notables || []).some((n) => n.id === s.heir) ? 0.025 : 0.01;
+    s.resentment = Math.max(0, (s.resentment || 0) - decay * dt);
+
+    holdAccum += dt;
+    if (holdAccum < 90) return;  // check every ~90s
+    holdAccum = 0;
+
+    const hold = Game.holdScore(s);
+    const age_r = s.age / Math.max(1, s.lifespan);
+    // betrayal risk only in the second half of life and when hold is low
+    const risk = Math.max(0, (30 - hold) / 30) * Math.max(0, (age_r - 0.5) * 2);
+    const heirAlive = s.heir != null && (s.notables || []).some((n) => n.id === s.heir);
+    const effective = heirAlive ? risk * 0.5 : risk;
+    if (effective <= 0 || Math.random() >= effective) return;
+
+    if (!heirAlive) {
+      s.resentment = Math.min(100, (s.resentment || 0) + 15);
+      chronicle(s, 'Grumbling spreads through the warren. Without a clear successor, every ambitious goblin imagines themselves in your seat.', 'event');
+    } else {
+      s.resentment = Math.min(100, (s.resentment || 0) + 8);
+      chronicle(s, 'A faction whispers against the named succession. The heir\'s name is muttered alongside less flattering alternatives.', 'event');
+    }
   }
 
   // ---- random events -------------------------------------------
@@ -922,6 +996,7 @@
     tickOracle(s, dtSec);
     tickWorldNews(s, dtSec);
     tickNotables(s, dtSec);
+    tickHold(s, dtSec);
     tickEra(s);
     tickReckoning(s, dtSec);
     tickMortality(s, dtSec);
@@ -1126,6 +1201,9 @@
     } else {
       m.ending = null;
     }
+    // hold / succession
+    m.resentment = Math.min(100, nonneg(m.resentment));
+    m.heir = (Number.isInteger(m.heir) && m.heir > 0) ? m.heir : null;
     // transient interactive objects are validated/cleared by their callers
     m.pendingChoice = (m.pendingChoice && typeof m.pendingChoice === 'object') ? m.pendingChoice : null;
     m.raid = Object.assign({ active: false, returnsAt: 0, target: null }, m.raid);
