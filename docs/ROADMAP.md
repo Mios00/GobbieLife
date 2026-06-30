@@ -119,7 +119,7 @@ fun → make it loop → then add breadth.** `F*`/`L*` scopes are in `REDESIGN.m
 11. [x] **L1** — Succession / reincarnation (world persists; bounded to `sagaLives`) ✅
 12. [x] **L2** — Legend meta-currency (banked at succession) ✅
 13. [x] **L3** — The Legend tree (~6–10 meta-upgrades) ✅
-14. [ ] **F8** — Refinement chain (ash/iron/grit)
+14. [x] **F8** — Refinement chain (ash/iron/grit) ✅
 15. [ ] **F5** — Vista accretion + building ASCII art  *(juice polish)*
 16. [ ] **L4** — The Saga's finale (Bargain resolves after the final life)
 17. [ ] **T1.1–T1.3** — Adventure v1 (zones → expeditions → party/risk)
@@ -808,6 +808,33 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-30 — **F8** — Refinement chain (ash/iron/grit): added three new resources
+  (`ash`, `iron`, `grit`). Scrapyard (Era-2 producer, max:2) produces ash + grit from
+  organized salvage. Smelter (Era-2 converter, max:3) converts scrap+ash → iron per level.
+  Era-2 buildings pay a fixed 0.1 grit/level/s upkeep; if `s.resources.grit` goes negative
+  the Era-2 output (converter `to`, non-grit producers) is halved (50% cap). Grit
+  production from the Scrapyard is never penalized so recovery is always possible.
+  `buildOne` now gates on `def.requires` (breakthrough check) and `def.ironCost` (iron
+  deduction). `applyProduction` updated for ash/iron/grit: ash+iron clamped ≥ 0, grit
+  can go negative (in-session starvation). On sanitize/import all three clamp to nonneg
+  (save-load grace period). `renderBuild` hides era-2 buildings until the `era2`
+  breakthrough fires. Ash/iron/grit rows appear in the resource panel only in Era 2+;
+  `snapResources` includes them. Grit-starved row highlighted in red. 78 new tests
+  (`tests/test-refine.js`); 632 total green across 26 files.
+- 2026-06-30 — **L1/L2/L3** — Succession / Legend currency / Legend tree: added
+  bounded reincarnation Saga (`CONFIG.sagaLives=4`). `Game.finish` banks ✦ Legend earned
+  (`Game.legendEarned`) into `s.sagaLegend`. `Game.succession` resets personal arc
+  (resources, stats, age, chronicle, etc.) while persisting world state (buildings, settle,
+  chapter, breakthroughs, standings with ~15% decay). `GG.LEGEND_TREE` (8 upgrades) is
+  purchasable on the legacy screen; `Game.canBuyLegend`/`Game.buyLegend` enforce the pool.
+  Upgrade effects wired into `Game.rates` (prod_boost), `Game.applyOffline` (offline_cap),
+  `tickMortality`/`resolveRaid` (renown_boost), and `Game.succession` (pop_start, start_raids,
+  start_trade, faction_floor, heir_bonus). `s.founder` records the previous protagonist.
+  `Story.heirIntro` generates intro text for heir successions (earnest + silly pools).
+  `sanitizeState` hardens all new fields (__proto__/FAKE keys dropped, sagaLife clamped,
+  sagaLegend nonneg, founder fields coerced). Legacy screen rendered in the ending modal with
+  the full legend tree and a "Begin Life N+1" button. 69 tests (`tests/test-succession.js`);
+  554 total green across 25 files.
 - 2026-06-30 — **C1** — Lore compose engine: `Story.compose(templateId, ctx)` — a
   seeded, deterministic generative engine over tagged vocabulary pools (`GG.LORE_POOLS`
   in data.js). A seeded LCG (`Story.seededRng`, djb2-hashed for string seeds) makes

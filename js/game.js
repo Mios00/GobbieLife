@@ -32,7 +32,7 @@
       name: legend.name,
       legendIntro: legend.intro.replace('#NAME#', legend.name),
 
-      resources: { mushrooms: 0, scrap: 0, shinies: 0 },
+      resources: { mushrooms: 0, scrap: 0, shinies: 0, ash: 0, iron: 0, grit: 0 },
       totals: { shiniesTotal: 0 }, // lifetime, for milestones
 
       population: 1,        // goblins (bred, job-assignable)
@@ -47,6 +47,7 @@
       buildings: {
         mushroomPatch: 0, scrapHeap: 0, burrow: 0,
         warTent: 0, lookout: 0, tradingPost: 0, brewery: 0, totem: 0, greatHall: 0,
+        scrapyard: 0, smelter: 0,
       },
 
       stats: { greed: 0, cruelty: 0, openness: 0, wanderlust: 0 },
@@ -131,15 +132,30 @@
 
   // production per second (net), plus a breakdown for the UI
   Game.rates = function (s) {
-    const r = { mushrooms: 0, scrap: 0, shinies: 0 };
-    // building passive — producers get DR; other roles are level-independent effects
+    const r = { mushrooms: 0, scrap: 0, shinies: 0, ash: 0, iron: 0, grit: 0 };
+    // grit starvation: if current grit stock is negative, era-2 output is halved
+    const gritStarved = (s.resources && (s.resources.grit || 0) < 0);
+    // building passive — producers get DR; converters consume/produce per level;
+    // era-2 buildings pay a fixed grit upkeep and may be penalized by starvation.
     for (const id in s.buildings) {
-      const lvl = s.buildings[id];
+      const lvl = s.buildings[id] || 0;
+      if (!lvl) continue;
       const def = GG.BUILDINGS[id];
-      if (lvl > 0 && def.prod) {
+      if (!def) continue;
+      const isEra2 = def.requires === 'era2';
+      const penalty = (isEra2 && gritStarved) ? 0.5 : 1;
+      if (def.role === 'converter' && def.convert) {
+        // consume from-resources at full rate; production is halved when starved
+        for (const res in def.convert.from) r[res] -= def.convert.from[res] * lvl;
+        for (const res in def.convert.to) r[res] += def.convert.to[res] * lvl * penalty;
+      } else if (def.prod) {
         const eff = (def.role === 'producer') ? drProd(lvl) : lvl;
-        for (const res in def.prod) r[res] += def.prod[res] * eff;
+        for (const res in def.prod) {
+          if (res === 'grit') r.grit += def.prod[res] * eff; // grit recovery never penalized
+          else r[res] += def.prod[res] * eff * (isEra2 ? penalty : 1);
+        }
       }
+      if (isEra2) r.grit -= 0.1 * lvl; // fixed grit upkeep per era-2 building level
     }
     // assigned goblins
     r.mushrooms += s.jobs.forage * GG.JOBS.forage.perGoblin;
@@ -153,6 +169,7 @@
     // curated-exponential escalation: scale ALL production by the global
     // multiplier earned from milestones (1 when none have fired — keeps early
     // balance, and every pinned-rate test, exactly as before).
+    // ash/iron/grit are era-2 chains that operate outside the exponential curve.
     const mult = Game.globalMult(s);
     r.mushrooms *= mult; r.scrap *= mult; r.shinies *= mult;
     // Legend tree: +20% to all positive resource production (applied before upkeep)
@@ -441,10 +458,13 @@
     const def = GG.BUILDINGS[id];
     if (def.requiresChapter && s.chapter < def.requiresChapter) return false;
     if (def.needs && !s.unlocks[def.needs]) return false;
+    if (def.requires && !(s.breakthroughs && s.breakthroughs[def.requires])) return false;
     if (!Game.buildingRevealed(s, id)) return false;
     const cost = Game.buildingCost(s, id);
     if (!Game.canAfford(s, cost)) return false;
+    if (def.ironCost && (s.resources.iron || 0) < def.ironCost) return false;
     for (const res in cost) s.resources[res] -= cost[res];
+    if (def.ironCost) s.resources.iron = (s.resources.iron || 0) - def.ironCost;
     s.buildings[id] += 1;
 
     if (def.unlocks) s.unlocks[def.unlocks] = true;
@@ -480,6 +500,8 @@
       brewery: 'You build a brewery and ferment the first batch of mushroom ale. It is vile. The tall folk adore it. Coin starts to trickle in while you sleep.',
       totem: 'You carve a totem that "remembers." Goblins tell it their day. It tells you your destiny, a little clearer each time.',
       greatHall: 'The Great Hall rises, beam by impossible beam. Every goblin you ever recruited stands in its shadow. This is the end of one tale and, you suspect, the start of a legend.',
+      scrapyard: 'You organize the first proper salvage heaps. Ash begins to drift from the sorting fires. The industrial age has a smell to it — and goblins love smells.',
+      smelter: 'The first Smelter lights. Scrap and ash go in. Iron comes out. The warren smells of hot metal for a week. Nobody complains.',
     };
     return lines[id] || 'Something new stands in the warren.';
   }
@@ -1146,7 +1168,7 @@
     s.legendIntro = newLegendIntro;
     s.startedAt = Date.now();
     s.lastSeen = Date.now();
-    s.resources = { mushrooms: 0, scrap: 0, shinies: 0 };
+    s.resources = { mushrooms: 0, scrap: 0, shinies: 0, ash: 0, iron: 0, grit: 0 };
     s.totals = { shiniesTotal: 0 };
     s.population = spentSoFar.pop_start ? 3 : 1;
     s.peakPop = s.population;
@@ -1238,6 +1260,10 @@
       s.resources[res] = Math.max(0, s.resources[res] + delta);
       if (res === 'shinies' && delta > 0) s.totals.shiniesTotal += delta;
     }
+    // era-2 resources: ash and iron clamp at 0; grit can go negative (starvation mechanic)
+    s.resources.ash  = Math.max(0, (s.resources.ash  || 0) + (r.ash  || 0) * dt);
+    s.resources.iron = Math.max(0, (s.resources.iron || 0) + (r.iron || 0) * dt);
+    s.resources.grit = (s.resources.grit || 0) + (r.grit || 0) * dt;
   }
 
   // ---- offline catch-up ----------------------------------------
@@ -1313,7 +1339,7 @@
   // EVERYTHING to its expected type/range here so loaded data can never carry
   // markup or break the simulation. This is the single trust boundary for
   // both localStorage loads and imported codes.
-  const numKeys = ['mushrooms', 'scrap', 'shinies'];
+  const numKeys = ['mushrooms', 'scrap', 'shinies', 'ash', 'iron', 'grit'];
   function n(v, def) { v = +v; return Number.isFinite(v) ? v : (def || 0); }
   function nonneg(v, def) { return Math.max(0, n(v, def)); }
   function intNonneg(v, def) { return Math.max(0, Math.trunc(n(v, def))); }

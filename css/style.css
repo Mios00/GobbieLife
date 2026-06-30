@@ -265,6 +265,9 @@ button { font-family: inherit; cursor: pointer; }
 .lt-buy { font-size: 11px; padding: 2px 8px; margin-top: 3px; align-self: start; width: auto; }
 .succession-btn { margin-top: 8px; }
 
+/* F8 — era-2 resource grit starvation indicator */
+.grit-starved .rname, .grit-starved .rval { color: #c04040; }
+
 /* start screen — the Silliness Index dial */
 #start { position: fixed; inset: 0; background: radial-gradient(circle at 50% 30%, #1a2114, #0b0d08 80%);
   display: none; align-items: center; justify-content: center; padding: 20px; z-index: 10; }

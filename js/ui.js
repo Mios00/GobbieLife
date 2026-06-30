@@ -78,6 +78,9 @@
       disp.mushrooms = s.resources.mushrooms;
       disp.scrap = s.resources.scrap;
       disp.shinies = s.resources.shinies;
+      disp.ash  = s.resources.ash  || 0;
+      disp.iron = s.resources.iron || 0;
+      disp.grit = s.resources.grit || 0;
     }
   };
 
@@ -154,7 +157,8 @@
     const r = Game.rates(s);
     if (s !== dispState || !disp) {
       dispState = s;
-      disp = { mushrooms: s.resources.mushrooms, scrap: s.resources.scrap, shinies: s.resources.shinies };
+      disp = { mushrooms: s.resources.mushrooms, scrap: s.resources.scrap, shinies: s.resources.shinies,
+               ash: s.resources.ash || 0, iron: s.resources.iron || 0, grit: s.resources.grit || 0 };
       dispT = 0;
     }
     // frame-rate-independent easing: the render loop now runs at the display's
@@ -186,12 +190,34 @@
         <span class="rrate ${rate < 0 ? 'neg' : ''}">${showRate ? sign(rate) + '/s' : ''}</span>
       </div>`;
     }).join('');
+    // era-2 resources (ash/iron/grit): always eased for smooth transitions,
+    // only rendered once Era 2 is reached.
+    for (const res of ['ash', 'iron', 'grit']) {
+      const actual = s.resources[res] || 0;
+      let shown = disp[res] || 0;
+      const dabs = Math.abs(actual - shown);
+      shown = (dabs < 0.5 || dabs > Math.max(40, Math.abs(actual) * 0.4)) ? actual : shown + (actual - shown) * k;
+      disp[res] = shown;
+    }
+    const era2Rows = (Game.era(s) >= 2) ? ['ash', 'iron', 'grit'].map((res) => {
+      const def = GG.RESOURCES[res];
+      const rate = r[res] || 0;
+      const shown = disp[res] || 0;
+      const showRate = Math.abs(rate) > 0.0001;
+      const isGritNeg = res === 'grit' && (s.resources.grit || 0) < 0;
+      return `<div class="rrow${isGritNeg ? ' grit-starved' : ''}" title="${esc(def.desc)}">
+        <span class="rsym">${def.sym}</span>
+        <span class="rname">${def.name}</span>
+        <span class="rval">${fmt(shown)}</span>
+        <span class="rrate ${rate < 0 ? 'neg' : ''}">${showRate ? sign(rate) + '/s' : ''}</span>
+      </div>`;
+    }).join('') : '';
     // caption: the hoard's magnitude rank + your prosperity multiplier so the
     // escalation is legible at a glance (a Pouch → a Dragon's Hoard · ×8).
     const mult = Game.globalMult(s);
     const tier = Game.magnitude(s.totals.shiniesTotal);
     const multStr = mult > 1.0001 ? ` · ×${mult < 10 ? mult.toFixed(1) : Math.round(mult)} prod` : '';
-    setHTML($('resources'), 'resources', `<h2>Hoard <span class="cap">${esc(tier + multStr)}</span></h2>${rows}`);
+    setHTML($('resources'), 'resources', `<h2>Hoard <span class="cap">${esc(tier + multStr)}</span></h2>${rows}${era2Rows}`);
   }
 
   function renderGoblins(s) {
@@ -342,6 +368,8 @@
       const lvl = s.buildings[id];
       const single = Game.buildingCost(s, id); // null when maxed
       const maxed = !single;
+      // era-2 buildings hidden until the breakthrough is owned
+      if (def.requires && !(s.breakthroughs && s.breakthroughs[def.requires])) continue;
       const chapterLock = def.requiresChapter && s.chapter < def.requiresChapter;
       const needLock = def.needs && !s.unlocks[def.needs];
       const locked = chapterLock || needLock;
