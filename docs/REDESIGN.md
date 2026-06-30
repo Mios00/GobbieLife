@@ -6,9 +6,9 @@
 > phase sections in `ROADMAP.md` win.
 
 > **Target play length: hours-to-days, finishable.** GobbieLife is a **narrative
-> roguelite-idle** — *not* an endless incremental. A single life is a ~30–90 min
-> authored arc; the full **Saga** is a small, fixed number of lives (**3–5**)
-> that **resolves into a true meta-ending**. We deliberately do **not** chase
+> roguelite-idle** — *not* an endless incremental. A single life is a **~60–120 min**
+> authored arc (CONFIG knobs; re-tune at L1/L4 playtest); the full **Saga** is a
+> small, fixed number of lives (**3–5**) that **resolves into a true meta-ending**. We deliberately do **not** chase
 > weeks-scale retention: the moat is hand-authored writing, and a weeks-long
 > treadmill would force number-grind + procedural repetition that dilutes exactly
 > that — and keep the satisfying ending forever receding. Replay value comes from
@@ -107,6 +107,58 @@ Why this is the right spine:
 
 ---
 
+## The Three Eras (staging spine)
+
+The three Eras are the **dramatic shape of a single life** — not a replacement of
+the Saga loop, but the visual and progression arc that runs *inside* it. They are
+**fully derived from the existing `Game.settlementTier(s)` (0–6)** — zero new
+persistent state:
+
+```
+Game.era(s):
+  tier 0–1  → Era 1  "Feral Awakening"   (dark void; sparse glyphs)
+  tier 2–4  → Era 2  "Iron Hunger"        (rusty industrial tones)
+  tier 5–6  → Era 3  "World Blight"       (brutalist terminal — █ ▓ ║)
+  Reckoning          → Era 3
+```
+
+### Nesting model
+
+```
+SAGA (3–5 lives, bounded)  →  resolves at L4
+  └ LIFE  (one authored arc, ~60–120 min active play)
+       └ ERA  (coarse act, derived from tier — no stored state)
+            └ CHAPTER  (fine beats: GG.CHAPTERS — existing system)
+```
+
+Era is derived on every render call; it never lives in the save file. Crossing a
+boundary triggers a one-time era-advance fanfare (tracked in the sanitized
+`s.eraSeen` set — see F6).
+
+### UI metamorphosis
+
+`UI.render` sets `document.getElementById('app').className = 'era-' + Game.era(s)`.
+Three CSS palette blocks in `style.css` (`.era-1 / .era-2 / .era-3`) handle all
+visual changes — font, color, border, glyph density — without touching JavaScript.
+`prefers-reduced-motion` is honoured; CSP is unchanged.
+
+### Landmark gates (tier transitions)
+
+Each Era transition is guarded by a **breakthrough building** (`GG.BREAKTHROUGHS`):
+
+| Breakthrough | Gate | Readable tier name |
+|---|---|---|
+| Breach the Surface | Era 1 → Era 2 | a `max:1` landmark with a sharp cost jump |
+| Stoke the Furnaces | Era 2 → Era 3 | gates the Era-3 building set |
+| The Great Hall | Large Village → Town | already `max:1`; triggers the Reckoning |
+
+Owning a breakthrough is tracked in `s.breakthroughs` (a sanitized set of known
+string ids). See F7 for the full economy implementation.
+
+*(Implemented in **F6** + **F7** — see ROADMAP.md for task detail.)*
+
+---
+
 ## The six pillars
 
 ### Pillar 1 — Escalation (curated exponential, bounded)
@@ -194,37 +246,46 @@ Principle: **make one life fun → make it loop → then add breadth.** New phas
 world track (`T*`) and remaining story track (`E*`) follow, re-centered on the
 loop. Detailed scopes for `E*`/`T*` remain in `ROADMAP.md`.
 
-1. **F1 — Juice layer.** ✅ Floating `+N`, count-ups, button-press feedback,
-   milestone fanfare banners (`GG.MILESTONES`). *(Shipped 2026-06-30.)*
-2. **F2 — Curated exponential rework.** ✅ Milestone production multipliers
-   (`Game.globalMult`), named magnitude tiers (`Game.magnitude`), tap scaling.
-   Derived from `s.milestones` (no new state). *(Shipped 2026-06-30. A deeper
-   per-building multiplicative re-balance is deferred to a focused tuning pass —
-   the milestone ladder already delivers the orders-of-magnitude escalation
-   without touching pinned base rates.)*
-3. **F3 — Next-goal tracker + onboarding.** ✅ `Game.nextGoal` header goal strip
-   (chapter requirement + progress) and `Game.onboardingTip` self-retiring early
-   guidance. Derived, no new state. *(Shipped 2026-06-30.)*
-4. **F4 — Story-delivery split.** Saga vs World; moment-cards + banners; pacing.
-5. **E3 — Hold (grip) + succession.** *(Already next; the heir now also feeds L1.)*
-6. **E4 — The Reckoning content + the Final Choice.** The climax of one life.
-7. **L1 — Succession / reincarnation.** End-of-life → world persists, age resets,
-   reincarnate as heir/new runt. *(Replaces the full wipe.)*
-8. **L2 — Legend currency.** Banking formula from the life's achievements; HUD.
-9. **L3 — The Legend tree.** Permanent meta-upgrades spent between lives.
-10. **F5 — Vista accretion + building ASCII art.** *(Juice polish; can slot earlier.)*
-11. **L4 — The Saga's finale.** The Bargain/Witch advances per reincarnation and
-    **resolves after the final life** (the true meta-ending); between-lives legacy
-    screen + Saga counter.
-12. **T1.1–T1.3 — Adventure v1.** Zones → expeditions → party/risk model.
-13. **E5 — Destiny climaxes + recurring cast** (the Mirror, the Witch, origin payoff).
-14. **T2.x — Heroes: XP, levels, gear.**
-15. **T3.x — Adventure expansion** (higher zones, beasts & bosses, loot).
-16. **E6 — Immortality pacts + endings + epilogues** (now also *alternate prestige
-    paths*: refuse succession, become deathless — a different meta-loop).
-17. **T4.x — Inbound threats** (notoriety, adventurer duels).
-18. **T5.x — Wars** (defense, declarations, sieges).
-19. **T6.x — Disasters & world-sim polish.**
+**Completed:** F1 ✅ · F2 ✅ · F3 ✅ · Task 0 ✅ · A1 ✅
+
+1. **F1 — Juice layer.** ✅ *(Shipped 2026-06-30.)*
+2. **F2 — Curated exponential rework.** ✅ *(Shipped 2026-06-30.)*
+3. **F3 — Next-goal tracker + onboarding.** ✅ *(Shipped 2026-06-30.)*
+4. **F4 — Typed & color-coded Chronicle.** `chronicle(s, msg, kind)` — enum of 8
+   kinds (oracle/milestone/portent/saga/world/combat/build/event); Oracle = teal,
+   milestone = gold; saga beats get a one-time banner. Sanitize kind; migrate legacy.
+5. **C1 — Lore compose engine.** `Story.compose(templateId, ctx)` with tagged vocab
+   pools + seeded RNG. Three tiers: authored set-pieces, templated grammars, context-
+   reactive weighting. Powers N1 titles and the ambient event firehose.
+6. **N1 — Notable identity.** Procedural, evolving titles built on C1. Deep component
+   pools (prefix+role+epithet+of-phrase); seeded per-notable; advances on criteria/luck.
+7. **F6 — Era model + UI metamorphosis.** `Game.era(s)` (derived); `#app.className`
+   = `era-N`; three CSS palettes; one-time era-advance fanfare; `s.eraSeen` sanitized.
+8. **F7 — Economy rebalance + building caps + tier gates + pacing.** All four levers:
+   producer diminishing returns, hard-cap utility/landmark buildings (`max:`), steep
+   tier-transition costs + `GG.BREAKTHROUGHS`, scaled upkeep + softened `globalMult`
+   (~×50–100). 60–120 min pacing CONFIG knobs.
+9. **E3 — Hold (grip) + succession.**
+10. **E4 — The Reckoning content + the Final Choice.** The climax of one life.
+11. **L1 — Succession / reincarnation.** End-of-life → world persists, age resets,
+    reincarnate as heir/new runt. *(Replaces the full wipe.)*
+12. **L2 — Legend currency.** Banking formula from the life's achievements; HUD.
+13. **L3 — The Legend tree.** Permanent meta-upgrades spent between lives.
+14. **F8 — Refinement chain.** `ash`/`iron` resources; Smelter converter; Grit
+    mechanical upkeep; Era-2 buildings consume iron.
+15. **F5 — Vista accretion + building ASCII art.** *(Juice polish.)*
+16. **L4 — The Saga's finale.** Bargain/Witch resolves after the final life.
+17. **T1.1–T1.3 — Adventure v1.** Zones → expeditions → party/risk model.
+18. **E5 — Destiny climaxes + recurring cast** (Mirror, Witch, origin payoff).
+19. **W1 — Era-3 macro-map.** Territorial control over `GG.FACTIONS`; iron/shinies
+    spend; holdings feed renown + standing drift; gates the geopolitical Reckoning.
+20. **T2.x — Heroes: XP, levels, gear.**
+21. **T3.x — Adventure expansion** (higher zones, beasts & bosses, loot).
+22. **E6 — Immortality pacts + endings + epilogues** (+ **Heroic/Savior** 5th ending;
+    alternate prestige paths: refuse succession, become deathless).
+23. **T4.x — Inbound threats** (notoriety, adventurer duels).
+24. **T5.x — Wars** (defense, declarations, sieges).
+25. **T6.x — Disasters & world-sim polish.**
 
 > Re: the old E7 (dynasty) — **absorbed into Pillar 3 / L1–L4.** It is no longer a
 > stretch goal; it is the spine.
@@ -254,12 +315,35 @@ loop. Detailed scopes for `E*`/`T*` remain in `ROADMAP.md`.
     progress line; a few first-run guidance hints that retire once acted on.
   - Accept: tracker shows the right next requirement and progress; hints retire;
     tests for requirement derivation.
-- **F4 — Story-delivery split**
-  - Scope: tag chronicle entries with a `kind` (`saga` | `world`); render Saga
-    beats emphasized (+ optional transient banner) and World beats dimmed; keep
-    the existing scroll-preserve dedup. Migrate legacy entries to `world`.
-  - Accept: saga vs world visually distinct; big beats surface a banner once;
-    scroll-lock behaviour preserved; tests for tagging + dedup.
+- **F4 — Typed & color-coded Chronicle** *(expanded)*
+  - Scope: `chronicle(s, msg, kind)` (game.js:332) — add `kind` param, default
+    `'world'`. Enum: `oracle|milestone|portent|saga|world|combat|build|event`. Tag
+    every call site. Map `kind` → CSS class in ui.js (Oracle = teal, milestone =
+    gold, portent = ominous, saga = moment-card + banner-once, world = dim).
+    Sanitize `kind` to the enum; migrate legacy entries (no kind → `'world'`).
+    Preserve the F3 `chronCount` scroll-lock dedup.
+  - Accept: Oracle teal; types distinct; saga beats banner once; scroll-lock
+    preserved; bogus kinds sanitized; legacy migrated; `tests/test-chronicle.js`.
+- **C1 — Lore compose engine** *(new)*
+  - Scope: `Story.compose(templateId, ctx)` — tagged vocab pools + seeded RNG
+    (simple LCG seeded from numeric id or string hash). Three tiers: Tier 1 =
+    authored set-pieces (chapter heralds, Reckoning, origin payoffs — never
+    proceduralized); Tier 2 = templated grammars for ambient chronicle, notable
+    deeds, world news; Tier 3 = context-reactive pool weighting (era, destiny).
+    `GG.LORE_POOLS` in data.js. All output via `esc()`. Reused by N1 and the
+    event firehose.
+  - Accept: varied output; deterministic under fixed seed; era tagging changes
+    pools; authored set-pieces untouched; `tests/test-compose.js`.
+- **N1 — Notable identity** *(new; builds on C1)*
+  - Scope: expand `GG.NOTABLE` (data.js:109) with component pools (prefixes,
+    epithets, of-phrases). `Story.notableTitle(nb, s)` assembles a seeded-per-
+    notable title; stable for an individual, varied across roster + runs. Title
+    evolution: `nb.titleTier` (0–3) advances on age/deed criteria or luck — Cook
+    becomes "the Ladle-Tyrant", veteran Raider becomes "the Unkillable". New per-
+    notable fields `title`/`titleTier` → sanitize (string + length cap; tier 0–3)
+    + migrate (derive from role if absent). UI shows `nb.title` instead of role.
+  - Accept: rich combined titles; evolve on criteria/luck; seeded stability; replays
+    vary; all escaped; sanitize/migrate covered; `tests/test-notable-identity.js`.
 - **F5 — Vista accretion + building ASCII art**
   - Scope: per-building ASCII glyph; compose the vista from *built* structures
     (fallback to the current tiered frames when sparse). Reuse settlement tiers
@@ -313,6 +397,82 @@ loop. Detailed scopes for `E*`/`T*` remain in `ROADMAP.md`.
     resolves to a distinct true ending; prior founders referenced;
     earnest+silly; tests for life-indexed selection + finale gating/resolution.
   - Deps: L1, E5 (cast), E6 (ending/epilogue assembly).
+
+### Phase F continued — Era, Economy, Refinement *(new phases)*
+
+- **F6 — Era model + UI metamorphosis**
+  - Scope: `Game.era(s)` (derived; no state). `UI.render` sets `app.className =
+    'era-' + Game.era(s)`. Three CSS palettes: Era 1 dark void → Era 2 rusty
+    industrial → Era 3 brutalist terminal. One-time era-advance fanfare (reuse
+    `UI.fx.banner`); `s.eraSeen` (set of ints 1–3) → sanitize + migrate.
+  - Accept: palette changes on crossing; one banner per era; `prefers-reduced-
+    motion` honoured; CSP intact; `tests/test-era.js`.
+- **F7 — Economy rebalance + building caps + tier gates + pacing**
+  - Root cause: producer output is `def.prod * lvl` (uncapped); `globalMult`
+    (~×700) multiplies unboundedly; utility buildings (War Tent/Trading Post/Totem)
+    have no `max`. Fixed by all four levers:
+    1. **Diminishing returns** on producers — decaying marginal output via `growth`
+       exponent or per-building DR formula in `Game.rates`.
+    2. **Hard-cap utility/landmark buildings** — `role` + `max` fields in
+       `GG.BUILDINGS`; `Game.build` blocks past `max`; build panel disables.
+    3. **Steep tier-transition costs + `GG.BREAKTHROUGHS`** — owned set in
+       `s.breakthroughs` (sanitized); Era-2 buildings gated behind the breach.
+    4. **Scale upkeep + soften `globalMult`** — tune milestone `mult` values to
+       ~×50–100 total; `CONFIG` pacing knobs (`lifespanMinSec ≈ 3600`).
+  - Accept: producer output bounded; utility buildings cap; globalMult ≤ ×100; a
+    scripted run reaches Reckoning in ~60–120 sim-minutes; `tests/test-balance.js`.
+- **F8 — Refinement chain (Ash / Iron / Grit)**
+  - Scope: `ash`/`iron` resources; Smelter converter (scrap+ash→iron); **Grit**
+    mechanical upkeep (Era-2 pressure); Era-2 builds consume iron. Sanitize all new
+    resource fields; F7 caps/DR kept intact over new resources.
+  - Accept: scrap+ash refine to iron; Era-2 buildings gate on iron; Grit can be
+    starved/recovered; `tests/test-refine.js`.
+
+### Phase W — Era-3 macro-map *(new phase)*
+
+- **W1 — Territorial control**
+  - Scope: `s.territory` (`{ factionId: 0–100 }`); `Game.tickTerritory(s, dt)` —
+    player spends iron/shinies to push claims; factions drift back at base rate;
+    holdings yield renown + resource trickle + standing drift. UI: Era-3-only
+    territory panel with per-faction "push border" action. Fully sanitized (known
+    ids only; values clamped 0–100). Feeds into E5 destiny climaxes and E6 epilogue.
+  - Accept: claims visible in Era 3; spending pushes claim; factions reclaim over
+    time; renown ticks; standing affected; sanitize drops unknown ids;
+    `tests/test-territory.js`.
+
+---
+
+## Target architecture
+
+**Stay vanilla JS — no framework, no bundler, no runtime deps in the shipped
+artifact.** This is the security-correct choice for a public release: no npm tree to
+audit, strict CSP (`script-src 'self'`, no `unsafe-inline`/`eval`), and `file://`
+support. The moat is the hand-authored writing, not the rendering tech.
+
+**Add discipline, not dependencies:**
+
+- **`// @ts-check` + JSDoc types** — TypeScript-grade checking with no build step
+  and no runtime dep. Catches typo'd-field / wrong-arg bugs behind "value not
+  changing." Dev-only; shipped code stays plain JS.
+- **In-repo tests** — Node built-in `node:test` / `node:assert` + a `vm` sandbox
+  with stubbed DOM. `npm test` → `tests/run.js`. Versioned, CI-able, container-safe.
+  *(Done: Task 0. 337 assertions.)*
+- **Per-panel HTML memoization** (`setHTML`, ui.js:65) — panels only rewrite when
+  output changes. Eliminates mid-gesture DOM destruction and the "click not
+  registering" bug. *(Done: A1.)*
+- **Single `requestAnimationFrame` render loop + wall-clock-`dt` sim tick** —
+  paint-aligned, throttle-accurate, no double-render. *(Done: A1.)*
+- **`sanitizeState()` as the single trust boundary** (game.js:972) — every new
+  persistent field defaulted in `newState`, coerced/bounded in `sanitizeState`,
+  handled in `migrate`, test-covered. Unknown keys dropped; `__proto__` can never
+  sneak in. This is non-negotiable.
+- **Delegated click handler** — one `data-act` listener on `document` in ui.js.
+  Never inline `onclick`/`onerror`. *(Pre-existing; keep it.)*
+
+**Module boundaries (keep them):**
+`data.js` (pure data) → `story.js` (narrative pools + compose engine) →
+`game.js` (state + logic, no DOM) → `ui.js` (render + delegated handler) →
+`main.js` (boot + loop). New systems are `tickX(s, dt)` called from `Game.tick`.
 
 ---
 
