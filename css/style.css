@@ -146,11 +146,35 @@ button { font-family: inherit; cursor: pointer; }
 .vcomp { color: var(--ink); font-size: 12px; margin-top: 7px; border-top: 1px solid var(--line); padding-top: 6px; }
 
 /* notable goblins roster */
-.nrow { display: grid; grid-template-columns: 16px 1fr; gap: 7px; padding: 4px 0; align-items: start; }
+.nrow { display: grid; grid-template-columns: 16px 1fr auto; gap: 7px; padding: 4px 0; align-items: start; }
 .nmark { color: var(--moss); text-align: center; }
 .ntext { display: flex; flex-direction: column; min-width: 0; }
 .ntext b { color: var(--ink); font-size: 13px; }
 .ndesc { color: var(--dim); font-size: 11px; font-style: italic; }
+.nrow-heir { background: rgba(180,140,60,0.08); border-radius: 4px; }
+.heir-set { font-size: 10px; padding: 1px 5px; }
+.heir-clear { font-size: 10px; padding: 1px 5px; color: var(--gold); border-color: var(--gold); }
+
+/* hold / grip panel */
+.hold-panel { margin: 8px 0 4px; padding: 6px 0 4px; border-top: 1px dotted var(--line); }
+.hold-row { display: flex; align-items: center; gap: 6px; }
+.hold-label, .res-label { font-size: 11px; color: var(--dim); min-width: 60px; }
+.hbar, .rbar { flex: 1; margin: 0; height: 5px; }
+.hfill { display: block; height: 100%; transition: width .4s linear; }
+.hold-crit .hfill, .hold-crit { color: var(--blood); }
+.hold-low  .hfill, .hold-low  { color: #c97f3a; }
+.hold-mid  .hfill, .hold-mid  { color: var(--moss); }
+.hold-high .hfill, .hold-high { color: var(--gold); }
+.hfill.hold-crit { background: var(--blood); }
+.hfill.hold-low  { background: #c97f3a; }
+.hfill.hold-mid  { background: var(--moss); }
+.hfill.hold-high { background: var(--gold); }
+.hold-tier { font-size: 10px; min-width: 66px; text-align: right; }
+.res-row { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.rfill { display: block; height: 100%; background: var(--blood); transition: width .4s linear; }
+.heir-row { margin-top: 5px; font-size: 12px; }
+.heir-name b { color: var(--gold); }
+.heir-none { color: var(--dim); font-style: italic; }
 
 /* chronicle */
 .panel.tall { max-height: 78vh; overflow-y: auto; }
