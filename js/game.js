@@ -74,6 +74,7 @@
       twilight: 0,         // how many twilight portents have been told (0..2)
       comet: mort.comet,   // the Prophesied Year countdown (world doom)
       ending: null,        // set when game is finished
+      eraSeen: {},         // which era transitions have bannered (keys: 2, 3)
       log: [],             // short transient action feedback
     };
   }
@@ -280,6 +281,16 @@
     let t = 0;
     for (const c of cuts) if (score >= c) t++;
     return t;
+  };
+
+  // Derives which of the three story Eras the settlement is in, purely from
+  // the settlement tier — no new stored state. Era 1 Feral (0–1), Era 2 Iron
+  // Hunger (2–4), Era 3 World Blight (5–6). UI uses this to reskin the palette.
+  Game.era = function (s) {
+    const t = Game.settlementTier(s);
+    if (t <= 1) return 1;
+    if (t <= 4) return 2;
+    return 3;
   };
 
   // ---- next-goal tracker (clarity / onboarding) ----------------
@@ -876,6 +887,18 @@
   };
 
   // ---- master tick ---------------------------------------------
+  const ERA_NAMES = { 2: 'Era II — Iron Hunger', 3: 'Era III — World Blight' };
+  function tickEra(s) {
+    if (!s.eraSeen || typeof s.eraSeen !== 'object') s.eraSeen = {};
+    const era = Game.era(s);
+    if (era > 1 && !s.eraSeen[era]) {
+      s.eraSeen[era] = true;
+      const name = ERA_NAMES[era] || ('Era ' + era);
+      pendingBanners.push(name);
+      chronicle(s, `The age turns. ${name} begins.`, 'saga');
+    }
+  }
+
   Game.tick = function (s, dtSec) {
     if (s.ending) return; // game over, world frozen
     applyProduction(s, dtSec);
@@ -890,6 +913,7 @@
     tickOracle(s, dtSec);
     tickWorldNews(s, dtSec);
     tickNotables(s, dtSec);
+    tickEra(s);
     tickReckoning(s, dtSec);
     tickMortality(s, dtSec);
     tickEvents(s, dtSec);
@@ -1068,6 +1092,10 @@
     const ctot = Math.max(60, nonneg(cm.total, C.cometMinSec || 3600));
     m.comet = { total: ctot, left: Math.max(0, Math.min(ctot, nonneg(cm.left, ctot))), warned: Math.max(0, Math.min(4, intNonneg(cm.warned))) };
     m.log = Array.isArray(m.log) ? m.log.filter((x) => typeof x === 'string').slice(0, 4) : [];
+    // eraSeen — only known era keys (2, 3); era 1 is the starting era, no fanfare needed
+    const es = (m.eraSeen && typeof m.eraSeen === 'object') ? m.eraSeen : {};
+    m.eraSeen = {};
+    for (const k of [2, 3]) { if (es[k]) m.eraSeen[k] = true; }
     m.chronicle = Array.isArray(m.chronicle)
       ? m.chronicle.filter((c) => c && typeof c.msg === 'string')
           .map((c) => ({ t: n(c.t, Date.now()), msg: c.msg,

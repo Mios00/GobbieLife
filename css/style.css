@@ -293,3 +293,37 @@ button { font-family: inherit; cursor: pointer; }
   @keyframes floatfade { 0% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
   .banner { animation: bannerout .4s ease 3.2s forwards; }
 }
+
+/* ============================================================
+ * Era palettes — applied to #app via Game.era(s)
+ * Era 1 Feral:      default mossy-cave (no override needed)
+ * Era 2 Iron Hunger: rusty industrial — warm ash + ember tones
+ * Era 3 World Blight: brutalist terminal — cold grey-blue, harsh
+ * ============================================================ */
+
+/* Era 1 is the default palette — no rules needed; here for clarity */
+.era-1 { }
+
+.era-2 {
+  --bg:    #140f0a;
+  --bg2:   #1e1510;
+  --panel: #251a12;
+  --ink:   #d9c4a8;
+  --dim:   #9c7a58;
+  --moss:  #c07840;
+  --gold:  #d4a84b;
+  --blood: #c04030;
+  --line:  #3d2918;
+}
+
+.era-3 {
+  --bg:    #090c10;
+  --bg2:   #0e1318;
+  --panel: #131a21;
+  --ink:   #b8ccd8;
+  --dim:   #607080;
+  --moss:  #4a90b0;
+  --gold:  #8ab4c8;
+  --blood: #c04050;
+  --line:  #1e2d3a;
+}
