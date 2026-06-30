@@ -1,9 +1,19 @@
-# GobbieLife — Redesign: From Narrative Toy to Addictive Idle Saga
+# GobbieLife — Redesign: A Narrative Roguelite-Idle Saga
 
 > **Status:** design direction agreed 2026-06-30. This document is the *vision &
 > sequencing* companion to `ROADMAP.md` (which holds the detailed task scopes).
 > When the two disagree on **order**, this file wins; for **task detail**, the
 > phase sections in `ROADMAP.md` win.
+
+> **Target play length: hours-to-days, finishable.** GobbieLife is a **narrative
+> roguelite-idle** — *not* an endless incremental. A single life is a ~30–90 min
+> authored arc; the full **Saga** is a small, fixed number of lives (**3–5**)
+> that **resolves into a true meta-ending**. We deliberately do **not** chase
+> weeks-scale retention: the moat is hand-authored writing, and a weeks-long
+> treadmill would force number-grind + procedural repetition that dilutes exactly
+> that — and keep the satisfying ending forever receding. Replay value comes from
+> **authored variety** (4 destinies × Silliness × heir × ending branches), not
+> grind.
 
 ## The problem this solves
 
@@ -23,10 +33,12 @@ But the mechanical engine an idle game needs is missing:
 
 ## Design decisions (locked 2026-06-30)
 
-- **Run length → Reincarnation / legacy loop.** Each goblin life is ONE authored
-  arc (hours→a day) that ends satisfyingly; then you reincarnate / pass to an
-  heir. The world persists; permanent **Legend** bonuses carry forward. Many
-  endings, each meaning more.
+- **Run length → a bounded reincarnation Saga (hours-to-days).** Each goblin life
+  is ONE authored arc (~30–90 min) that ends satisfyingly; then you reincarnate /
+  pass to an heir. The world persists; permanent **Legend** bonuses carry
+  forward. The Saga is a **fixed ~3–5 lives**, after which the Bargain resolves in
+  a **true meta-finale**. Many endings along the way, each meaning more — and a
+  real finish line.
 - **Scale → Curated exponential.** Orders-of-magnitude growth, but legible and
   themed via **named magnitude tiers**. Grand *and* readable.
 - **Platform → Desktop, active sessions.** Invest in *more to do while watching*,
@@ -72,6 +84,11 @@ thing: the end of a life becomes **Succession, not a wipe**.
         └──────────────────┬──────────────────────────┘
                            ▼
                     NEXT LIFE  (stronger start, deeper world)
+                           ┊
+                  …after the FINAL life (3–5):
+                           ▼
+              THE SAGA'S TRUE FINALE (L4) — pay / break /
+              turn the Bargain. A real ending. The game finishes.
 ```
 
 Why this is the right spine:
@@ -83,13 +100,20 @@ Why this is the right spine:
   authored endings, and each reincarnation makes the next ending land harder.
 - It turns the **Bargain** (the Witch's deal for "more") into a *compounding*
   meta-story — the price grows each life, which is thematically perfect.
+- **It's bounded, so it actually ends.** Because the Saga is a fixed ~3–5 lives,
+  the meta-story has a real climax (L4) and the player *finishes* a tale rather
+  than abandoning a treadmill. This also removes the riskiest, least-fun work
+  (infinite exponential balancing, endless prestige tuning) entirely.
 
 ---
 
 ## The six pillars
 
-### Pillar 1 — Escalation (curated exponential)
-*Goal: numbers grow by orders of magnitude, stay legible, feel grand.*
+### Pillar 1 — Escalation (curated exponential, bounded)
+*Goal: numbers grow by orders of magnitude **within a life**, stay legible, feel
+grand — without an infinite treadmill. Each life spans a few named magnitude
+tiers; the Legend tree lifts the **starting** tier of later lives. We tune for a
+finite curve, not endless scaling.*
 
 - **Multiplicative buildings.** Replace flat `+0.5/s` with multipliers and
   scaling base output, so each level visibly *matters*. Global multipliers stack.
@@ -113,16 +137,22 @@ Why this is the right spine:
   the vista shows the *actual* structures you built, not 7 fixed frames.
 - Strictly CSS animation + DOM; CSP unchanged; works from `file://`.
 
-### Pillar 3 — The Legacy Loop (the prestige core)
-*Goal: the days-to-weeks engine. Promotes the old "E7 dynasty" stretch to spine.*
+### Pillar 3 — The Legacy Loop (bounded prestige core)
+*Goal: the hours-to-days engine. Promotes the old "E7 dynasty" stretch to spine —
+but **bounded to a fixed ~3–5-life Saga with a real finale**, not endless.*
 
 - **Succession on end-of-life** — world persists, age resets, reincarnate as heir
-  or new runt.
+  or new runt. The **Saga length is fixed** (`CONFIG.sagaLives`, default 4); the
+  final life ends in the meta-finale instead of another reincarnation.
 - **Legend** meta-currency, banked from the life's achievements.
-- **The Legend tree** — permanent meta-upgrades (production %, start-with-unlocks,
-  caps, heir inherits gear, faction goodwill floor, …).
-- **The Saga-across-lives** — the Bargain/Witch storyline advances per
-  reincarnation; a between-lives "legacy" screen frames each new arc.
+- **The Legend tree (small & finite)** — ~6–10 permanent upgrades that ease each
+  successive life (production %, start-with-unlocks, caps, heir inherits gear,
+  faction goodwill floor, +offline cap). Sized so a full Saga can buy *most* of
+  it, not an infinite grind.
+- **The Saga's true finale** — after the final life's Reckoning, the Bargain/Witch
+  storyline **resolves** (pay / break / turn it). This is the headline ending, not
+  a footnote. A between-lives "legacy" screen frames each new arc and the count
+  ("Life III of IV").
 
 ### Pillar 4 — Story delivery (hierarchy & pacing)
 *Goal: enjoy the lore without overwhelm; never miss the big beats.*
@@ -177,8 +207,9 @@ loop. Detailed scopes for `E*`/`T*` remain in `ROADMAP.md`.
 8. **L2 — Legend currency.** Banking formula from the life's achievements; HUD.
 9. **L3 — The Legend tree.** Permanent meta-upgrades spent between lives.
 10. **F5 — Vista accretion + building ASCII art.** *(Juice polish; can slot earlier.)*
-11. **L4 — Saga-across-lives.** The Bargain/Witch advances per reincarnation; the
-    between-lives legacy screen.
+11. **L4 — The Saga's finale.** The Bargain/Witch advances per reincarnation and
+    **resolves after the final life** (the true meta-ending); between-lives legacy
+    screen + Saga counter.
 12. **T1.1–T1.3 — Adventure v1.** Zones → expeditions → party/risk model.
 13. **E5 — Destiny climaxes + recurring cast** (the Mirror, the Witch, origin payoff).
 14. **T2.x — Heroes: XP, levels, gear.**
@@ -238,10 +269,13 @@ loop. Detailed scopes for `E*`/`T*` remain in `ROADMAP.md`.
     tier, faction standings decayed toward base, discoveries, notable bloodlines),
     reset the *personal* arc (age/lifespan/comet re-rolled, resources/buildings per
     Legend-tree start bonuses), and reincarnate as the heir (E3) or a new runt.
-    New `s.life` counter; `s.world` persistent sub-object.
-  - Accept: ending a life starts a new one in the same world; personal state
-    resets, world state carries (with decay); fully sanitized/migrated (new trust
-    surface!); tests for persistence + reset + decay.
+    New `s.life` counter (1-indexed) and `CONFIG.sagaLives` (default 4); `s.world`
+    persistent sub-object. **On the final life** (`s.life >= sagaLives`),
+    end-of-life routes to the Saga finale (L4) instead of another succession.
+  - Accept: ending a non-final life starts a new one in the same world (personal
+    state resets, world state carries with decay); the final life routes to the
+    finale, not a reincarnation; fully sanitized/migrated (new trust surface!);
+    tests for persistence + reset + decay + the final-life branch.
   - Deps: E3 (heir), E4 (Final Choice), E2 (clocks).
 - **L2 — Legend currency**
   - Scope: `s.legend` (lifetime, persistent); `Game.legendEarned(s)` from renown,
@@ -251,22 +285,28 @@ loop. Detailed scopes for `E*`/`T*` remain in `ROADMAP.md`.
   - Accept: Legend banks deterministically from a life; HUD shows it; tests for
     the formula + monotonic banking.
   - Deps: L1.
-- **L3 — The Legend tree**
-  - Scope: `GG.LEGEND` upgrade defs (production %, start-with-breeding/raids,
-    cap+, faster breeding, heir keeps gear, faction goodwill floor, +offline cap,
-    …) bought with `s.legend`; a between-lives **Legacy screen** to spend; effects
-    applied in `newState`/`rates`.
+- **L3 — The Legend tree (small & finite)**
+  - Scope: `GG.LEGEND` — **~6–10** upgrade defs (production %, start-with-
+    breeding/raids, cap+, faster breeding, heir keeps gear, faction goodwill
+    floor, +offline cap) bought with `s.legend`; a between-lives **Legacy screen**
+    to spend; effects applied in `newState`/`rates`. Curve sized so a full Saga
+    buys *most* of the tree — generous, finite, not a grind.
   - Accept: upgrades purchasable, persist, and measurably change the next life;
     sanitize/migrate the owned-upgrade set (known ids only); tests for
     purchase-gating + effect application.
   - Deps: L2.
-- **L4 — Saga across lives**
+- **L4 — The Saga's finale (Bargain resolves)**
   - Scope: the Bargain/Witch storyline advances by `s.life` (the Witch's price
-    compounds; her appearances escalate); the Legacy screen frames each new arc
-    ("Life III of the Bargain"); founder(s) recorded as remembered legends.
-  - Accept: the meta-story visibly progresses each reincarnation; prior founders
-    are referenced; earnest+silly registers; tests for life-indexed selection.
-  - Deps: L1, E5 (cast).
+    compounds; her appearances escalate across lives); the Legacy screen frames
+    each new arc and shows the Saga counter ("Life III of IV"). **After the final
+    life's Reckoning, the Bargain resolves** — a climactic meta-choice (pay /
+    break / turn it) gated by cumulative deeds/destiny/Legend → the **true
+    ending**. Founder lives are recorded as remembered legends in the epilogue.
+  - Accept: the meta-story visibly progresses each reincarnation; the final life
+    triggers the resolution; the meta-choice offers only earned options and
+    resolves to a distinct true ending; prior founders referenced;
+    earnest+silly; tests for life-indexed selection + finale gating/resolution.
+  - Deps: L1, E5 (cast), E6 (ending/epilogue assembly).
 
 ---
 
@@ -286,8 +326,11 @@ loop. Detailed scopes for `E*`/`T*` remain in `ROADMAP.md`.
   sync `main` via merged PR.
 
 ## Open questions for later (not blocking F1)
-- Legend-tree size/curve (how many upgrades, how steep) — tune during L3.
+- **Saga length** (`CONFIG.sagaLives`, default 4) and the per-life target duration
+  (~30–90 min) — playtest and tune during L1/L4.
+- **Legend-tree curve** — ~6–10 upgrades; tune steepness in L3 so a full Saga buys
+  most of it.
 - Does the heir's *personality* (trait) mechanically shape the next life, or just
   flavour it? (Leaning: a small mechanical lean + strong flavour.)
-- Immortality pacts (E6) as a *refusal* of succession — a parallel, lonelier
-  meta-loop. Design when we reach E6.
+- Immortality pacts (E6) as a *refusal* of succession — ending the Saga early on a
+  lonelier, deathless note. Design when we reach E6.

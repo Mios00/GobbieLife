@@ -6,14 +6,16 @@ world: an **adventure pathway**, **per-faction reputation**, **inbound threats
 
 > **For future sessions:** this file holds the detailed task scopes. The
 > **vision & sequencing** now live in [`REDESIGN.md`](./REDESIGN.md) (agreed
-> 2026-06-30): the game is being re-centered on a **reincarnation/legacy
-> prestige loop** (mortality *is* prestige), **curated-exponential** escalation,
-> a **juice** feedback layer, and **story-delivery** hierarchy — front-loaded
-> as new phases **F** (Foundations of Fun) and **L** (Legacy Loop) *before* more
-> world breadth. Take the first unchecked item in the **Amended build order**
-> (in `REDESIGN.md`) whose dependencies are met, implement it end-to-end (data +
-> logic + UI + tests), tick its box, append a one-line note, and add a changelog
-> entry. Keep tasks one-cycle-sized; split anything bigger than a session.
+> 2026-06-30). Target: a **finishable, hours-to-days narrative roguelite-idle** —
+> re-centered on a **bounded reincarnation Saga** (a fixed ~3–5 lives that
+> resolve in a true meta-finale; mortality *is* prestige), **curated-exponential**
+> escalation (bounded, not endless), a **juice** feedback layer, and
+> **story-delivery** hierarchy — front-loaded as new phases **F** (Foundations of
+> Fun) and **L** (Legacy Loop) *before* more world breadth. Take the first
+> unchecked item in the **Amended build order** (in `REDESIGN.md`) whose
+> dependencies are met, implement it end-to-end (data + logic + UI + tests), tick
+> its box, append a one-line note, and add a changelog entry. Keep tasks
+> one-cycle-sized; split anything bigger than a session.
 
 ---
 
@@ -104,11 +106,11 @@ fun → make it loop → then add breadth.** `F*`/`L*` scopes are in `REDESIGN.m
 4. [ ] **F4** — Story-delivery split (Saga vs World; moment-cards + banners)
 5. [ ] **E3** — Hold (grip) + succession  *(heir now also feeds L1)*
 6. [ ] **E4** — The Reckoning content + the Final Choice  *(the climax of one life)*
-7. [ ] **L1** — Succession / reincarnation (world persists; replaces the wipe)
+7. [ ] **L1** — Succession / reincarnation (world persists; bounded to `sagaLives`; replaces the wipe)
 8. [ ] **L2** — Legend meta-currency (banked at succession)
-9. [ ] **L3** — The Legend tree (permanent meta-upgrades)
+9. [ ] **L3** — The Legend tree (small, finite — ~6–10 meta-upgrades)
 10. [ ] **F5** — Vista accretion + building ASCII art  *(juice polish; can slot earlier)*
-11. [ ] **L4** — Saga across lives (the Bargain/Witch compounds per reincarnation)
+11. [ ] **L4** — The Saga's finale (the Bargain resolves after the final life → true ending)
 12. [ ] **T1.1–T1.3** — Adventure v1 (zones → expeditions → party/risk)
 13. [ ] **E5** — Destiny climaxes + recurring cast (the Mirror, the Witch, origin payoff)
 14. [ ] **T2.1–T2.2** — Heroes: XP/levels, equipment & inventory
@@ -287,6 +289,7 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-30 — **Scope** — set the target to a **finishable, hours-to-days narrative roguelite-idle**: bounded the reincarnation loop to a fixed ~3–5-life **Saga** (`CONFIG.sagaLives`) that resolves in a **true meta-finale** (L4); relaxed escalation to a finite per-life curve; shrank the Legend tree to ~6–10 upgrades. Deliberately *not* chasing weeks-scale retention (protects the hand-authored writing + a real ending).
 - 2026-06-30 — **Redesign** — added [`REDESIGN.md`](./REDESIGN.md): re-centered the game on a reincarnation/legacy prestige loop (mortality = prestige), curated-exponential escalation, a juice feedback layer, and story-delivery hierarchy. New front-loaded phases **F** (Foundations of Fun: F1–F5) and **L** (Legacy Loop: L1–L4); E7/dynasty absorbed into the loop; build order re-sequenced (make one life fun → make it loop → add breadth).
 - 2026-06-29 — **E2** — Protagonist mortality (`age`/`lifespan`, active-play only) + Renown + the Comet (`s.comet`) countdown; twilight & comet portents; three roads to the Reckoning (Hall / old age / comet); header markers; sanitize/migrate. 20 tests.
 - 2026-06-29 — **E1** — Finale → multi-act Reckoning scaffold: Great Hall begins a staged endgame act (`s.endgame`, `tickReckoning`, `Story.reckoningBeat`) instead of ending instantly; resolves after its beats; header marker; sanitize/migrate. 19 tests.
