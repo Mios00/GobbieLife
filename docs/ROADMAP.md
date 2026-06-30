@@ -6,7 +6,12 @@ world: an **adventure pathway**, **per-faction reputation**, **inbound threats
 
 > **For future sessions:** this file holds the detailed task scopes. The
 > **vision & sequencing** now live in [`REDESIGN.md`](./REDESIGN.md) (agreed
-> 2026-06-30). Target: a **finishable, hours-to-days narrative roguelite-idle** —
+> 2026-06-30). The **full architecture + Era 1–3 integration plan** (approved
+> 2026-06-30) is in [`PLAN.md`](./PLAN.md) — read it first for context on
+> every pending phase (Era model, economy rebalance, lore engine, notable
+> titles, UI metamorphosis, pacing, and the full amended build order).
+>
+> Target: a **finishable, hours-to-days narrative roguelite-idle** —
 > re-centered on a **bounded reincarnation Saga** (a fixed ~3–5 lives that
 > resolve in a true meta-finale; mortality *is* prestige), **curated-exponential**
 > escalation (bounded, not endless), a **juice** feedback layer, and
@@ -69,9 +74,10 @@ world: an **adventure pathway**, **per-faction reputation**, **inbound threats
 - **Ticks:** add `tickX(s, dt)` functions called from `Game.tick`; keep offline
   catch-up (`applyProduction`) cheap and bounded (8h cap). Don't age/kill
   notables during offline.
-- **Tests:** Node + `vm` harness with stubbed `document`/`localStorage` (see
-  `scratchpad/test-*.js`). Each system gets a `test-<system>.js`. Run the whole
-  suite before shipping; keep all green.
+- **Tests:** Node + `vm` harness with stubbed `document`/`localStorage`, in the
+  repo under `tests/test-*.js`, run with **`npm test`** (a zero-dependency runner,
+  `tests/run.js`). Each system gets a `test-<system>.js`. Run the whole suite
+  before shipping; keep all green.
 - **Ship:** commit to the dev branch `claude/push-bundle-gobblelife-rqw28z`
   (this is the **default branch** Pages deploys from), then trigger the
   `pages.yml` workflow. Sync `main` via a merged PR (direct push is proxy-blocked).
@@ -289,6 +295,22 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-30 — **A1** — Render & loop hardening (architecture pass). Fixed the two
+  "click" bugs: (1) a manual tap now **snaps** the count-up display to the true
+  value (`UI.snapResources`) so a `+N` moves the headline number instantly instead
+  of being swallowed by the ease; (2) every panel's `innerHTML` is now written only
+  when its **generated markup actually changes** (per-panel memoization), so an
+  unchanged panel never destroys its own buttons mid-click. Replaced the two
+  `setInterval`s with one **requestAnimationFrame** render loop (paint-aligned, no
+  double-render) and a **wall-clock-`dt`** sim tick (throttle-accurate, since every
+  cadence subsystem accumulates `dt`); easing is now frame-rate-independent.
+  9 new tests (`tests/test-render.js`) + real-browser smoke (tap-immediate, 11
+  rapid taps in sync, no CSP violations). *(buyAmt relocation to UI-only state
+  deferred — low value, would churn the save format + sanitize tests.)*
+- 2026-06-30 — **Task 0** — Relocated the test suite into the repo: `scratchpad/`
+  was ephemeral (unversioned, lost on container reset). Moved all 16 `test-*.js`
+  into `tests/`, normalized the hardcoded root to a `__dirname`-relative path, and
+  added a zero-dependency runner wired to `npm test`. 337 assertions green.
 - 2026-06-30 — **F3** — Clarity & onboarding: `Game.nextGoal` derives the next chapter requirement (metric + have/need/frac) and renders a header **goal strip** ("◷ Next: grow the tribe to 4 goblins · 2/4 → II — The Warren Wakes" + mini bar), hidden during the Reckoning/ending. `Game.onboardingTip` gives one contextual first-minutes nudge in the actions panel that retires on its own by Chapter II. Both purely derived → no new persistent state. 18 tests + browser smoke. 297 total green.
 - 2026-06-30 — **F2** — Curated-exponential escalation: each milestone now grants a persistent global **production multiplier** (`mult`), `Game.globalMult` = their product (×1 fresh → ~×700 across a full bounded ladder, ~3 orders of magnitude). `Game.rates` scales all production by it (upkeep unscaled); manual taps scale by `sqrt(mult)`. **Named magnitude tiers** (`GG.MAGNITUDES` / `Game.magnitude` — a Pittance → a God's Ransom) shown as the Hoard rank + a `×N prod` prosperity caption. Derived purely from the already-sanitized `s.milestones` → **no new persistent state**; every pinned-rate test stays green. 20 tests + browser smoke. 279 total green.
 - 2026-06-30 — **F1** — Juice layer: floating `+N` gains on manual clicks, count-up tweening of the Hoard, button-press feedback, and **milestone fanfare banners** (`GG.MILESTONES` — scale thresholds fire once via `Game.checkMilestones`, drained to on-screen banners by the boot loop; `s.milestones` sanitized + primed on load so advanced saves don't banner retroactively). CSP-safe (DOM/CSS only, `prefers-reduced-motion` honoured). 20 tests + real-browser smoke. 259 total green.
