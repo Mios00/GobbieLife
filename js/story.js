@@ -117,6 +117,27 @@
   }
   S.seededRng = seededRng;   // exposed for N1's per-notable seeding
 
+  // assemble a stable title for a notable goblin, seeded by their id so the same
+  // individual always keeps the same identity; tier controls how much is revealed:
+  //   0 = "[name] [role]" (fresh, no history)
+  //   1 = "[prefix] [name] [role]" (a descriptor earned)
+  //   2 = "[prefix] [name], [epithet]" (a real name among the warren)
+  //   3 = "[prefix] [name], [epithet] [of_phrase]" (a legend)
+  S.notableTitle = function (nb) {
+    const tier = nb.titleTier || 0;
+    if (tier === 0) return nb.name + ' ' + nb.role;
+    const rng = seededRng(nb.id);
+    const pools = GG.NOTABLE || {};
+    const pickp = function (arr) { const a = arr || []; return a.length ? a[Math.floor(rng() * a.length)] : ''; };
+    const pfx = pickp(pools.prefixes);
+    const ep  = pickp(pools.epithets);
+    const ofp = pickp(pools.of_phrases);
+    const pre = pfx ? pfx + ' ' : '';
+    if (tier === 1) return pre + nb.name + ' ' + nb.role;
+    if (tier === 2) return pre + nb.name + ', ' + (ep || nb.role);
+    return pre + nb.name + ', ' + (ep || nb.role) + (ofp ? ' ' + ofp : '');
+  };
+
   // pick one entry from a named pool, honouring era preference + sill register.
   function pickFromPool(slotName, era, sillRegister, rng) {
     const pools = GG.LORE_POOLS || {};

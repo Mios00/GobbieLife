@@ -111,7 +111,7 @@ fun → make it loop → then add breadth.** `F*`/`L*` scopes are in `REDESIGN.m
 3. [x] **F3** — Next-goal tracker + onboarding ✅
 4. [x] **F4** — Typed & color-coded Chronicle ✅
 5. [x] **C1** — Lore compose engine (authored skeleton + generative slot-fill) ✅
-6. [ ] **N1** — Notable identity (procedural, evolving titles — notables only)
+6. [x] **N1** — Notable identity (procedural, evolving titles — notables only) ✅
 7. [ ] **F6** — Era model + UI metamorphosis
 8. [ ] **F7** — Economy rebalance + building caps + tier gates + pacing
 9. [ ] **E3** — Hold (grip) + succession  *(heir now also feeds L1)*
