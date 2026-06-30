@@ -84,8 +84,13 @@
       // Saga / Legacy (L1–L3)
       sagaLife: 1,         // current life within the Saga (1 … sagaLives)
       sagaLegend: 0,       // ✦ Legend banked (prior lives' earned; current life's added at Game.finish)
+      sagaLegendEarned: 0, // ✦ Legend earned across the whole Saga (monotonic; gates the L4 finale doors)
       legendSpent: {},     // legend-tree upgrades purchased (id → true)
       founder: null,       // { name, endingId, endingName, lifeNum } from the previous life
+      founders: [],        // every prior life's record, oldest first (the Saga's remembered legends)
+
+      // Saga finale (L4) — the TRUE meta-ending, set only after the final life
+      sagaEnding: null,    // { id, name, text } once the Bargain is resolved
     };
   }
 
@@ -608,6 +613,11 @@
     if (!s.pendingChoice) return;
     const opt = s.pendingChoice.options[optIndex];
     if (!opt) return;
+    // L4 — the Saga's true finale (the Bargain meta-choice)
+    if (opt._isSagaFinale && opt._saga) {
+      Game.resolveSagaFinale(s, opt._saga);
+      return;
+    }
     if (opt._ending && has(GG.ENDINGS, opt._ending)) {
       s.pendingChoice = null;
       Game.finish(s, opt._ending);
@@ -1072,8 +1082,11 @@
     const id = (endingId && has(GG.ENDINGS, endingId)) ? endingId : (Game.destiny(s).lead || 'chaos');
     s.ending = { id, name: GG.ENDINGS[id].name, text: GG.Story.finale(id, s.silliness) };
     chronicle(s, '════ THE END ════', 'saga');
-    // bank ✦ Legend earned this life so the legacy screen can spend it immediately
-    s.sagaLegend = (s.sagaLegend || 0) + Game.legendEarned(s);
+    // bank ✦ Legend earned this life so the legacy screen can spend it immediately;
+    // also accrue the lifetime total (never spent down) that gates the L4 finale doors.
+    const earned = Game.legendEarned(s);
+    s.sagaLegend = (s.sagaLegend || 0) + earned;
+    s.sagaLegendEarned = (s.sagaLegendEarned || 0) + earned;
   };
 
   // ---- legacy / succession (L1–L3) --------------------------------
@@ -1164,6 +1177,9 @@
     // sagaLegend already reflects earned from this life (banked in Game.finish)
     s.legendSpent = spentSoFar;
     s.founder = founder;
+    // remember every prior life — the Saga's roll of legends, shown in the L4 epilogue
+    s.founders = (Array.isArray(s.founders) ? s.founders.slice() : []);
+    s.founders.push(founder);
     s.name = newName;
     s.legendIntro = newLegendIntro;
     s.startedAt = Date.now();
@@ -1209,6 +1225,63 @@
       ? newName + ' inherits the warren of ' + founder.name + '.'
       : 'A new runt crawls out of the mud — the warren endures.';
     chronicle(s, sagaTag + ' ' + who, 'saga');
+    // the Bargain spine (L4): the witch returns at the dawn of each new life,
+    // her price compounding as the Saga draws toward its resolution.
+    const bargain = GG.Story.bargainBeat(newSagaLife, s.silliness);
+    if (bargain) chronicle(s, bargain, 'portent');
+  };
+
+  // ---- the Saga's true finale (L4) --------------------------------
+  // True once the protagonist is living the final life of the Saga.
+  Game.isFinalLife = function (s) {
+    const maxLives = GG.CONFIG.sagaLives || 4;
+    return (s.sagaLife || 1) >= maxLives;
+  };
+
+  // The meta-choice doors offered when the Bargain comes due. 'pay' is always
+  // available; 'break'/'turn' are earned via cumulative Legend (and, for 'turn',
+  // a clever/open final life). Each option carries _isSagaFinale + _saga (a known
+  // GG.SAGA_ENDINGS key).
+  Game.sagaFinaleOptions = function (s) {
+    const earned = s.sagaLegendEarned || 0;
+    const opts = [
+      { label: GG.Story.sagaFinaleLabel('pay', s.silliness), _saga: 'pay', _isSagaFinale: true },
+    ];
+    if (earned >= (GG.CONFIG.sagaBreakLegend || 10)) {
+      opts.push({ label: GG.Story.sagaFinaleLabel('break', s.silliness), _saga: 'break', _isSagaFinale: true });
+    }
+    // 'turn' needs the most Legend AND a final life led by openness or wanderlust
+    // (the cleverness/insight to flip the deal rather than meet it head-on).
+    const clever = (s.stats.openness || 0) >= (s.stats.cruelty || 0)
+                || (s.stats.wanderlust || 0) >= (s.stats.cruelty || 0);
+    if (earned >= (GG.CONFIG.sagaTurnLegend || 16) && clever) {
+      opts.push({ label: GG.Story.sagaFinaleLabel('turn', s.silliness), _saga: 'turn', _isSagaFinale: true });
+    }
+    return opts;
+  };
+
+  // Open the Bargain's Reckoning — the final meta-choice. Only on the final life,
+  // once its per-life ending has been reached (s.ending set), and not already resolved.
+  Game.beginSagaFinale = function (s) {
+    if (!s.ending || s.sagaEnding) return false;
+    if (!Game.isFinalLife(s)) return false;
+    s.pendingChoice = {
+      title: 'The Bargain Comes Due',
+      text: GG.Story.sagaFinaleText(s, s.silliness),
+      options: Game.sagaFinaleOptions(s),
+      _isSagaFinale: true,
+    };
+    return true;
+  };
+
+  // Resolve the Saga into its true ending. Builds the founders roll from every
+  // prior life plus this one, and freezes the world for good.
+  Game.resolveSagaFinale = function (s, choiceId) {
+    if (!has(GG.SAGA_ENDINGS, choiceId)) choiceId = 'pay';
+    const text = GG.Story.sagaEnding(choiceId, s, s.silliness);
+    s.sagaEnding = { id: choiceId, name: GG.SAGA_ENDINGS[choiceId].name, text };
+    s.pendingChoice = null;
+    chronicle(s, '════ THE SAGA ENDS ════', 'saga');
   };
 
   // ---- master tick ---------------------------------------------
@@ -1225,7 +1298,7 @@
   }
 
   Game.tick = function (s, dtSec) {
-    if (s.ending) return; // game over, world frozen
+    if (s.ending || s.sagaEnding) return; // game over (per-life or whole Saga) — world frozen
     applyProduction(s, dtSec);
 
     tickBreeding(s, dtSec);
@@ -1452,8 +1525,11 @@
     m.resentment = Math.min(100, nonneg(m.resentment));
     m.heir = (Number.isInteger(m.heir) && m.heir > 0) ? m.heir : null;
     // transient interactive objects are validated/cleared by their callers.
-    // Final Choice is re-derived from state on the next tick (safe, no user-controlled values).
-    if (m.pendingChoice && typeof m.pendingChoice === 'object' && m.pendingChoice._isFinalChoice) {
+    // The Final Choice (E4) and the Saga finale (L4) are both re-derivable from
+    // state (the modal re-opens them from the ending card), so drop any loaded one
+    // — never trust a crafted choice blob with embedded _ending/_saga keys.
+    if (m.pendingChoice && typeof m.pendingChoice === 'object'
+        && (m.pendingChoice._isFinalChoice || m.pendingChoice._isSagaFinale)) {
       m.pendingChoice = null;
     } else {
       m.pendingChoice = (m.pendingChoice && typeof m.pendingChoice === 'object') ? m.pendingChoice : null;
@@ -1464,18 +1540,33 @@
     // Saga / Legacy (L1–L3)
     m.sagaLife = Math.max(1, Math.min(GG.CONFIG.sagaLives || 4, intNonneg(m.sagaLife, 1)));
     m.sagaLegend = intNonneg(m.sagaLegend, 0);
+    m.sagaLegendEarned = intNonneg(m.sagaLegendEarned, 0); // L4 finale gate (lifetime ✦)
     const ltSpent = (m.legendSpent && typeof m.legendSpent === 'object') ? m.legendSpent : {};
     m.legendSpent = {};
     for (const upg of (GG.LEGEND_TREE || [])) { if (ltSpent[upg.id]) m.legendSpent[upg.id] = true; }
-    if (m.founder && typeof m.founder === 'object') {
-      m.founder = {
-        name: str(m.founder.name, ''),
-        endingId: has(GG.ENDINGS, m.founder.endingId) ? str(m.founder.endingId, '') : '',
-        endingName: str(m.founder.endingName, ''),
-        lifeNum: Math.max(1, intNonneg(m.founder.lifeNum, 1)),
+    // a single prior-life record, rebuilt from known fields only (rejects markup/proto keys)
+    const sanFounder = (f) => (f && typeof f === 'object') ? {
+      name: str(f.name, ''),
+      endingId: has(GG.ENDINGS, f.endingId) ? str(f.endingId, '') : '',
+      endingName: str(f.endingName, ''),
+      lifeNum: Math.max(1, intNonneg(f.lifeNum, 1)),
+    } : null;
+    m.founder = sanFounder(m.founder);
+    // the founders roll (L4) — bounded list of prior-life records, oldest first
+    const maxFounders = (GG.CONFIG.sagaLives || 4);
+    m.founders = Array.isArray(m.founders)
+      ? m.founders.map(sanFounder).filter(Boolean).slice(0, maxFounders)
+      : [];
+    // the true Saga ending (L4): only a KNOWN GG.SAGA_ENDINGS id survives
+    const sgid = (m.sagaEnding && typeof m.sagaEnding === 'object') ? m.sagaEnding.id : null;
+    if (typeof sgid === 'string' && has(GG.SAGA_ENDINGS, sgid)) {
+      m.sagaEnding = {
+        id: sgid,
+        name: str(m.sagaEnding.name, GG.SAGA_ENDINGS[sgid].name),
+        text: Array.isArray(m.sagaEnding.text) ? m.sagaEnding.text.filter((x) => typeof x === 'string') : [],
       };
     } else {
-      m.founder = null;
+      m.sagaEnding = null;
     }
     return m;
   }

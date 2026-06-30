@@ -120,8 +120,8 @@ fun → make it loop → then add breadth.** `F*`/`L*` scopes are in `REDESIGN.m
 12. [x] **L2** — Legend meta-currency (banked at succession) ✅
 13. [x] **L3** — The Legend tree (~6–10 meta-upgrades) ✅
 14. [x] **F8** — Refinement chain (ash/iron/grit) ✅
-15. [ ] **F5** — Vista accretion + building ASCII art  *(juice polish)*
-16. [ ] **L4** — The Saga's finale (Bargain resolves after the final life)
+16. [x] **L4** — The Saga's finale (Bargain resolves after the final life) ✅
+15. [ ] **F5** — Vista accretion + building ASCII art  *(juice polish — parked for last)*
 17. [ ] **T1.1–T1.3** — Adventure v1 (zones → expeditions → party/risk)
 18. [ ] **E5** — Destiny climaxes + recurring cast (Mirror, Witch, origin payoff)
 19. [ ] **W1** — Era-3 macro-map (territorial control)
@@ -808,6 +808,28 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-30 — **L4** — The Saga's finale (the Bargain resolves after the final life).
+  A lightweight Bargain spine: the witch returns at the dawn of each new life
+  (`Story.bargainBeat`, life-indexed, earnest+silly), chronicled as a `portent` in
+  `Game.succession` — her price compounding toward the final life. New persistent
+  fields: `s.sagaLegendEarned` (monotonic lifetime ✦, accrued in `Game.finish`
+  alongside the spendable pool — gates the finale doors), `s.founders` (the Saga's
+  roll of every prior life, pushed at succession), and `s.sagaEnding` (the true
+  meta-ending). New `GG.SAGA_ENDINGS` (pay / break / turn) and CONFIG knobs
+  (`sagaBreakLegend: 10`, `sagaTurnLegend: 16`). On the **final** life the ending
+  card's button becomes "Face the Bargain →" (`data-act="sagaFinale"` →
+  `Game.beginSagaFinale`) instead of succession; that opens the meta-choice
+  (`Game.sagaFinaleOptions` — pay always; break gated by lifetime ✦; turn gated by
+  more ✦ + a clever/open final life). `Game.resolveSagaFinale` (routed from
+  `resolveChoice` via `_isSagaFinale`) sets the true ending; the modal then shows
+  the **Saga ending card** with a founders roll. `Game.tick` now freezes on
+  `s.sagaEnding` too. Full sanitize hardening: `sagaLegendEarned` nonneg, `founders`
+  rebuilt from known fields + bounded to `sagaLives` (non-objects/markup/proto keys
+  dropped), `sagaEnding` only a known `GG.SAGA_ENDINGS` id, and `_isSagaFinale`
+  pendingChoice dropped on import (re-derivable). Self-contained — the deeper Witch
+  cast (E5) and richer epilogue assembly (E6) enrich it later. 67 new tests
+  (`tests/test-saga-finale.js`) + full-saga headless sim + browser smoke (both L4
+  modals render, all three doors, no CSP violations); 699 total green across 27 files.
 - 2026-06-30 — **F8** — Refinement chain (ash/iron/grit): added three new resources
   (`ash`, `iron`, `grit`). Scrapyard (Era-2 producer, max:2) produces ash + grit from
   organized salvage. Smelter (Era-2 converter, max:3) converts scrap+ash → iron per level.

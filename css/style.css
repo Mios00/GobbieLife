@@ -240,6 +240,19 @@ button { font-family: inherit; cursor: pointer; }
 .final-opt { display: block; width: 100%; text-align: left; margin-bottom: 7px; border-color: var(--dim); }
 .final-opt:last-child { margin-bottom: 0; }
 
+/* L4 — the Saga's true finale (the Bargain meta-choice + true ending) */
+.card.saga-choice { border-color: var(--blood); }
+.card.saga-choice h1 { color: var(--blood); text-align: center; font-size: 22px; letter-spacing: 2px; }
+.card.saga-choice p { color: var(--ink); text-align: center; font-style: italic; }
+.card.ending.saga-ending { border-color: var(--gold); }
+.card.ending.saga-ending h1 { color: var(--gold); font-size: 28px; letter-spacing: 2px; }
+.founders-roll { border-top: 1px dotted var(--line); margin-top: 18px; padding-top: 14px; }
+.founders-h { color: var(--gold); font-size: 14px; margin: 0 0 8px; text-align: center; letter-spacing: 1px; }
+.founder-line { color: var(--dim); font-size: 12px; line-height: 1.7; }
+.founder-line b { color: var(--ink); }
+.founder-line.current b { color: var(--moss); }
+.founder-life { color: var(--line); font-size: 11px; float: right; }
+
 .silly { color: var(--gold); }
 .reckon { color: var(--blood); font-weight: bold; letter-spacing: 1px; }
 .renown { color: var(--gold); }

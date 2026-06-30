@@ -118,7 +118,9 @@ ok(ss.heir === null, 'heir cleared');
 ok(ss.endgame.active === false, 'endgame reset');
 ok(ss.raidCount === 0, 'raidCount reset');
 ok(ss.chronicle.length > 0, 'chronicle has succession entry');
-ok(/Life 2/i.test(ss.chronicle[ss.chronicle.length - 1].msg), 'succession chronicle mentions new life number');
+// the "Life N of M" saga line is chronicled (L4 appends a Bargain portent after it,
+// so it is no longer guaranteed to be the very last entry)
+ok(ss.chronicle.some((c) => /Life 2/i.test(c.msg)), 'succession chronicle mentions new life number');
 
 // world state preserved
 ok(ss.buildings.mushroomPatch === prevBuildings.mushroomPatch, 'buildings persist across succession');

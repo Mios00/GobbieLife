@@ -539,4 +539,98 @@
       .replace(/#FOUNDERNAME#/g, founder.name || 'the founder')
       .replace(/#ENDING#/g, founder.endingName || 'gone');
   };
+
+  // --- the Bargain spine (L4) -----------------------------------
+  // A Witch portent surfaced at the dawn of each new life (lives 2+). Her price
+  // compounds: she appears closer, asks for more, as the Saga draws toward its
+  // resolution. Indexed by the new life number; the last index is reserved for
+  // the final life, where the Bargain is about to come due. (E5 will deepen the
+  // Witch into a full recurring character; this is the load-bearing spine.)
+  // Indexed by LIFE NUMBER (so the entry for life N lives at index N). Index 0–1
+  // are empty (life 1 is the founding life — the witch has not yet returned).
+  // The escalation runs across the reincarnations up to the final life; the last
+  // populated entry is reused if a Saga is configured longer than the pool.
+  const BARGAIN = {
+    earnest: [
+      '', '', // lives 0 & 1 — no portent yet
+      'On the first night of this new life, an old goblin you do not recognise sits at the edge of the firelight. "A tooth for an idea," she says, as if finishing a sentence from long ago. "You took the idea. The tooth is still owed." Then she is gone, and only you saw her.',
+      'The witch is waiting inside the Great Hall when you arrive, sitting in your chair as though it were always hers. "Last life but one, little king," she says. "You wanted more, and more came, and more is never free. Next time I come, I come to collect. Decide, before then, what you are willing to call the price." She leaves you the chair. You do not sleep.',
+      'There is no whisper this dawn. The witch simply stands in the middle of the warren in full daylight — the first time anyone but you has ever seen her — and every goblin goes quiet. "It is the last life," she says, plainly, to all of them. "The Bargain comes due before its end. Your king knows. Ask them what was promised." Then she walks into the crowd and is not there anymore.',
+    ],
+    silly: [
+      '', '',
+      'On your first night in this new life, an old goblin nobody invited is just SITTING at the fire. "A tooth for an idea," she says, like she\'s resuming a conversation from three years ago that you do not remember starting. "You kept the idea. I kept the receipt." She vanishes. You are the only one who saw her, which is somehow worse.',
+      'The witch is in the Great Hall. In your chair. Feet up. "Penultimate life, champ," she says around a mushroom she did not ask for. "You wanted \'more.\' More showed up. More has a subscription fee. Next time I\'m here to COLLECT, so maybe sort out in advance what you\'re calling the price." She leaves. You inherit a deeply haunted chair.',
+      'No whisper today. The witch is just STANDING in the warren at high noon — visible to everyone, for the first time ever — and the whole place goes silent. "Last life!" she announces, cheerfully, like a tour guide. "The Bargain\'s due before it\'s over. Your king knows ALL about it. Go on, ask them what got promised." She strolls into the crowd and ceases to exist. Morale: complicated.',
+    ],
+  };
+  // Returns the portent for a given life number, or null when there is none.
+  S.bargainBeat = function (life, sill) {
+    const pool = silly(sill) ? BARGAIN.silly : BARGAIN.earnest;
+    const i = Math.max(0, Math.min(pool.length - 1, life | 0));
+    return pool[i] || null;
+  };
+
+  // --- the Saga's true finale (L4) ------------------------------
+  // After the FINAL life's Reckoning, the witch arrives to collect. The player
+  // faces a meta-choice (pay / break / turn) — only earned doors are open — and
+  // the chosen door resolves the whole Saga into a true ending.
+  const SAGA_FINALE_TEXT = {
+    earnest: 'The last Reckoning is spent, and the witch is here — not at the edge of the firelight now, but standing where the whole warren can see her, hand open. "The Bargain," she says. "Every life you spent, every \'more\' you asked for, all of it spent on this single moment. So. How does the tale of #DYNASTY# end?"',
+    silly: 'The final Reckoning wraps up and the witch is RIGHT THERE, fully visible, palm out like the world\'s most ominous waiter presenting a check. "The Bargain," she says. "Every life, every \'more,\' it was all a down payment on this exact moment. So! How\'s the saga of #DYNASTY# wrap up?"',
+  };
+  const SAGA_LABELS = {
+    pay:   { earnest: 'Pay the price. The Bargain is honoured.',                 silly: 'Pay up. A deal\'s a deal. (Gulp.)' },
+    break: { earnest: 'Refuse. Break the Bargain, and damn the cost.',           silly: 'Nope. Break the Bargain. Find out later.' },
+    turn:  { earnest: 'Turn the Bargain back upon the one who offered it.',      silly: 'Counter-offer: turn the whole thing back on HER.' },
+  };
+  S.sagaFinaleText = function (s, sill) {
+    const dynasty = (s.founders && s.founders.length && s.founders[0].name) || s.name || 'the warren';
+    return (silly(sill) ? SAGA_FINALE_TEXT.silly : SAGA_FINALE_TEXT.earnest)
+      .replace(/#DYNASTY#/g, dynasty);
+  };
+  S.sagaFinaleLabel = function (choiceId, sill) {
+    const l = SAGA_LABELS[choiceId];
+    if (!l) return 'Accept what comes.';
+    return silly(sill) ? l.silly : l.earnest;
+  };
+
+  // The true-ending epilogues. Each returns an array of paragraphs; the founders
+  // roll is appended by game.js. Earnest + silly registers.
+  const SAGA_ENDINGS = {
+    pay: {
+      earnest: [
+        'You open your hand to match hers, and the witch takes what is owed — not a tooth, not gold, but the long thread of everything you became. The warren does not fall. It simply… settles, the way a thing settles when the story that drove it is finished. Your goblins live on, prosperous and ordinary, and the name that built them passes quietly into the kind of legend that gets carved over doorways and slowly, lovingly forgotten.',
+        'The Bargain is honoured. The price was always the point — "more" was never free, and you paid it the only way it could be paid: with the whole shape of a life, spent well. The witch nods once, as to an equal, and is gone. What remains is a kingdom that will outlast every goblin who remembers why it stands. That is what you bought. It was, in the end, a fair trade.',
+      ],
+      silly: [
+        'You open your hand to match hers and the witch collects — not a tooth, not gold, but the entire narrative arc of everything you turned out to be. The warren doesn\'t collapse. It just sort of… exhales, like a settlement that has finally finished its character development. Your goblins live on, prosperous and refreshingly normal, and your name becomes the kind of legend that gets carved over a door and then gradually mistaken for decoration.',
+        'Bargain: honoured. The price was always the whole point — "more" was never free, and you settled the tab in the only currency it accepted: an entire life, spent on purpose. The witch nods at you like a colleague, and poofs. What\'s left is a kingdom that will outlive every goblin who remembers the weird deal that funded it. Worth it? You bought it. You decide. (It was worth it.)',
+      ],
+    },
+    break: {
+      earnest: [
+        'You close your hand. "No," you say, and the word lands like a felled tree. The witch\'s smile does not move, but something behind her eyes does — surprise, maybe, or the first cold edge of respect. "Then it is unpaid," she says, "and an unpaid Bargain is a wound that does not close." Perhaps. But you built enough, across enough lives, that the warren can carry the wound and walk. The story does not end clean. It ends UNBOWED — which, for a runt from a flooded hole, was always the more honest ending.',
+        'You refuse. There will be a price for refusing — there is always a price — but you have spent a whole Saga learning that some prices are worth not paying. The witch withdraws her hand, slowly, and for the first time looks at you the way one looks at a thing one underestimated. The Bargain breaks. The world keeps turning, a little wilder for it, with a goblin kingdom at its centre that bowed to no one, not even the dark that made it.',
+      ],
+      silly: [
+        'You close your hand. "No," you say, and it lands like a dropped anvil. The witch keeps smiling but something behind her eyes RECALCULATES. "Then it\'s unpaid," she says, "and an unpaid Bargain is a wound that doesn\'t close." Sure, maybe. But you built so much across so many lives that the warren can just… limp it off. The story doesn\'t end tidy. It ends UNBOWED, which honestly, for a runt who started in a flooded hole, is the cooler ending and you know it.',
+        'You refuse. There\'s gonna be a price for refusing — there\'s ALWAYS a price — but you\'ve spent a whole Saga learning some bills are worth ignoring. The witch slowly retracts her hand and looks at you like a vending machine that just fought back. The Bargain breaks. The world keeps spinning, slightly more feral for it, with a goblin kingdom at the middle of it that knelt to absolutely no one, including the literal darkness that made it.',
+      ],
+    },
+    turn: {
+      earnest: [
+        'You do not close your hand, and you do not open it to pay. Instead you ask the question you have been assembling across four lives — the one about who taught a runt the word "more," and why, and what SHE was paying off when she did it. The witch goes very still. The hand that was held out to collect is, you realise, also a hand that was once extended to bargain — and a bargain has two ends. You offer her yours. The collector becomes the indebted. The Saga ends not with a price paid or refused, but with the oldest trick in the world turned inside out, and a goblin standing where the witch used to stand.',
+        'You turn it. Every alliance you ever brokered, every stranger you ever fed, every patient clever year — it was never just kingdom-building. It was a case. And now you lay it down: the Bargain was always a debt SHE was working off, and you have just become the one she owes. The witch laughs — a real laugh, delighted and a little afraid — and bows. The Saga closes on a reversal no one foresaw, least of all a runt from a flooded hole, who wanted "more" and ended up holding the thread that the whole dark was hung from.',
+      ],
+      silly: [
+        'You don\'t close your hand and you don\'t pay either. Instead you ask the question you\'ve been quietly building for four entire lives: who taught a runt the word "more," and why, and what was SHE working off when she did it, hmm? The witch goes VERY still. Turns out the hand held out to collect is also the hand that once held out a deal — and deals have two ends, babey. You offer her yours. Collector becomes collectee. The Saga ends not with a price paid or dodged but with the oldest scam in the world flipped completely inside out, and a goblin standing exactly where the witch used to.',
+        'You turn it on her. Every alliance, every fed stranger, every suspiciously patient clever year — it was never JUST a kingdom. It was a whole investigation, and you\'re ready to present. The Bargain was a debt SHE was paying off, and congratulations, you\'re now the creditor. The witch laughs — genuinely, delightedly, slightly nervously — and bows. The Saga ends on a twist nobody saw coming, least of all a flooded-hole runt who asked for "more" and walked off holding the actual string the whole darkness dangles from.',
+      ],
+    },
+  };
+  S.sagaEnding = function (choiceId, s, sill) {
+    const def = SAGA_ENDINGS[choiceId] || SAGA_ENDINGS.pay;
+    return (silly(sill) ? def.silly : def.earnest).slice();
+  };
 })();
