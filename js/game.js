@@ -567,10 +567,17 @@
     return best;
   }
 
-  // player resolves a raid OR event choice (shared option schema)
+  // player resolves a raid OR event choice (shared option schema).
+  // Final Choice options carry _ending (a known GG.ENDINGS key) → finish the game.
   Game.resolveChoice = function (s, optIndex) {
     if (!s.pendingChoice) return;
     const opt = s.pendingChoice.options[optIndex];
+    if (!opt) return;
+    if (opt._ending && has(GG.ENDINGS, opt._ending)) {
+      s.pendingChoice = null;
+      Game.finish(s, opt._ending);
+      return;
+    }
     const raiders = s.pendingChoice._raiders || 1;
     // loot scales mildly with raider count (events have no raiders → mult 1)
     const mult = 1 + (raiders - 1) * 0.25;
@@ -915,14 +922,76 @@
   };
   function tickReckoning(s, dt) {
     if (!s.endgame || !s.endgame.active || s.ending) return;
+    if (s.pendingChoice) return; // Final Choice waiting for player
     s.endgame.accum += dt;
     if (s.endgame.accum < (C.reckoningStageSec || 18)) return;
     s.endgame.accum = 0;
     s.endgame.stage += 1;
     const beat = GG.Story.reckoningBeat(s.endgame.stage, s.silliness);
     if (beat != null) chronicle(s, beat, 'saga');
-    else Game.finish(s); // out of beats → resolve (E4 will insert the Final Choice here)
+    else Game.presentFinalChoice(s);
   }
+
+  // ---- Final Choice (E4) ----------------------------------------
+  // Builds the available Final Choice doors from destiny + hold + deeds.
+  // Each option carries _isFinalChoice + _ending (a known GG.ENDINGS key).
+  Game.finalChoiceOptions = function (s) {
+    const dom = (Game.destiny(s).lead) || 'chaos';
+    const hold = Game.holdScore(s);
+    const cruelty  = s.stats.cruelty  || 0;
+    const openness = s.stats.openness || 0;
+    const wanderlust = s.stats.wanderlust || 0;
+    const greed    = s.stats.greed    || 0;
+    const raidCount  = s.raidCount  || 0;
+    const tradeCount = s.tradeCount || 0;
+
+    const opts = [
+      // always available: follow the natural destiny
+      { label: GG.Story.naturalChoiceLabel(dom), _ending: dom, _isFinalChoice: true },
+    ];
+
+    // Grip — available if hold ≥ 40 AND the natural destiny isn't already grip-type
+    if (hold >= 40 && dom !== 'villain' && dom !== 'purist') {
+      opts.push({
+        label: cruelty >= openness
+          ? 'Hold until the world stops turning.'
+          : 'Seal the gates. Let no more in.',
+        _ending: cruelty >= openness ? 'villain' : 'purist',
+        _isFinalChoice: true,
+      });
+    }
+
+    // Road — available if wanderlust is highest stat OR raided >= 3 times
+    const maxStat = Math.max(cruelty, openness, wanderlust, greed);
+    if (dom !== 'chaos' && (wanderlust >= maxStat || raidCount >= 3)) {
+      opts.push({
+        label: 'The horizon hasn\'t finished with me.',
+        _ending: 'chaos',
+        _isFinalChoice: true,
+      });
+    }
+
+    // Open gates — available if openness is highest stat OR traded >= 3 times
+    if (dom !== 'multirace' && (openness >= maxStat || tradeCount >= 3)) {
+      opts.push({
+        label: 'Open the gates. Make them remember.',
+        _ending: 'multirace',
+        _isFinalChoice: true,
+      });
+    }
+
+    return opts;
+  };
+
+  Game.presentFinalChoice = function (s) {
+    if (s.ending || s.pendingChoice) return;
+    s.pendingChoice = {
+      title: 'The Final Choice',
+      text: GG.Story.finalChoiceText(s.silliness),
+      options: Game.finalChoiceOptions(s),
+      _isFinalChoice: true,
+    };
+  };
 
   // your mortality + the Comet — two clocks. If either runs out it ushers in
   // the Reckoning (the third road being the Great Hall itself). Both advance
@@ -961,10 +1030,10 @@
   }
 
   // ---- finale ---------------------------------------------------
-  Game.finish = function (s) {
+  // endingId: optional override from the Final Choice; falls back to scored destiny.
+  Game.finish = function (s, endingId) {
     if (s.endgame) s.endgame.active = false;
-    const d = Game.destiny(s);
-    const id = d.lead || 'chaos';
+    const id = (endingId && has(GG.ENDINGS, endingId)) ? endingId : (Game.destiny(s).lead || 'chaos');
     s.ending = { id, name: GG.ENDINGS[id].name, text: GG.Story.finale(id, s.silliness) };
     chronicle(s, '════ THE END ════', 'saga');
   };
@@ -1204,8 +1273,13 @@
     // hold / succession
     m.resentment = Math.min(100, nonneg(m.resentment));
     m.heir = (Number.isInteger(m.heir) && m.heir > 0) ? m.heir : null;
-    // transient interactive objects are validated/cleared by their callers
-    m.pendingChoice = (m.pendingChoice && typeof m.pendingChoice === 'object') ? m.pendingChoice : null;
+    // transient interactive objects are validated/cleared by their callers.
+    // Final Choice is re-derived from state on the next tick (safe, no user-controlled values).
+    if (m.pendingChoice && typeof m.pendingChoice === 'object' && m.pendingChoice._isFinalChoice) {
+      m.pendingChoice = null;
+    } else {
+      m.pendingChoice = (m.pendingChoice && typeof m.pendingChoice === 'object') ? m.pendingChoice : null;
+    }
     m.raid = Object.assign({ active: false, returnsAt: 0, target: null }, m.raid);
     m.raid.active = bool(m.raid.active);
     m.raid.returnsAt = n(m.raid.returnsAt);

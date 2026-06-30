@@ -506,6 +506,7 @@
     if (s.pendingChoice) {
       const pc = s.pendingChoice;
       el.style.display = 'flex';
+      const isFinal = !!pc._isFinalChoice;
       const opts = pc.options.map((o, i) => {
         const ok = !o.cost || Game.canAfford(s, o.cost);
         const costStr = o.cost
@@ -513,9 +514,9 @@
               .filter(([res]) => GG.RESOURCES[res])  // ignore unknown resource keys
               .map(([res, n]) => fmt(n) + GG.RESOURCES[res].sym).join(' ')})</span>`
           : '';
-        return `<button class="act" data-act="choice" data-i="${i}" ${ok ? '' : 'disabled'}>${esc(o.label)}${costStr}</button>`;
+        return `<button class="${isFinal ? 'act final-opt' : 'act'}" data-act="choice" data-i="${i}" ${ok ? '' : 'disabled'}>${esc(o.label)}${costStr}</button>`;
       }).join('');
-      el.innerHTML = `<div class="card">
+      el.innerHTML = `<div class="card${isFinal ? ' final-choice' : ''}">
         <h1>${esc(pc.title)}</h1>
         <p>${esc(pc.text)}</p>
         <div class="choices">${opts}</div>

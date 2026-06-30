@@ -115,7 +115,7 @@ fun → make it loop → then add breadth.** `F*`/`L*` scopes are in `REDESIGN.m
 7. [x] **F6** — Era model + UI metamorphosis ✅
 8. [x] **F7** — Economy rebalance + building caps + tier gates + pacing ✅
 9. [x] **E3** — Hold (grip) + succession ✅
-10. [ ] **E4** — The Reckoning content + the Final Choice
+10. [x] **E4** — The Reckoning content + the Final Choice ✅
 11. [ ] **L1** — Succession / reincarnation (world persists; bounded to `sagaLives`)
 12. [ ] **L2** — Legend meta-currency (banked at succession)
 13. [ ] **L3** — The Legend tree (~6–10 meta-upgrades)
