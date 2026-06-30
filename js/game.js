@@ -133,9 +133,34 @@
       const n = s.races[rc] || 0;
       if (def && n > 0) for (const res in def.bonus) r[res] += def.bonus[res] * n;
     }
-    // upkeep — the WHOLE settlement eats, goblins and guests alike
+    // curated-exponential escalation: scale ALL production by the global
+    // multiplier earned from milestones (1 when none have fired — keeps early
+    // balance, and every pinned-rate test, exactly as before).
+    const mult = Game.globalMult(s);
+    r.mushrooms *= mult; r.scrap *= mult; r.shinies *= mult;
+    // upkeep — the WHOLE settlement eats, goblins and guests alike (NOT scaled,
+    // so growth outruns mouths the way escalation should).
     r.mushrooms -= Game.totalPop(s) * C.upkeepPerGoblin;
     return r;
+  };
+
+  // the global production multiplier: the product of every fired milestone's
+  // `mult`. Derived purely from s.milestones (already a sanitized trust surface),
+  // so this adds no new persistent state. 1 on a fresh tale.
+  Game.globalMult = function (s) {
+    let m = 1;
+    for (const def of (GG.MILESTONES || [])) {
+      if (s.milestones && s.milestones[def.id]) m *= (def.mult || 1);
+    }
+    return m;
+  };
+
+  // name the magnitude band a number falls in ("a Hoard"); highest at <= n.
+  Game.magnitude = function (n) {
+    const bands = GG.MAGNITUDES || [];
+    let name = bands.length ? bands[0].name : '';
+    for (const b of bands) if (n >= b.at) name = b.name;
+    return name;
   };
 
   // cost to buy the next level of a building (returns map or null if maxed)
@@ -272,9 +297,15 @@
   }
   Game.chronicle = chronicle;
 
+  // a manual scrabble. Taps scale gently with your prosperity (sqrt of the
+  // global multiplier) so clicking stays relevant past the opening minute
+  // without trivialising it. Returns the amount gained (the UI floats it).
   Game.manual = function (s, kind) {
-    if (kind === 'forage') { s.resources.mushrooms += 1; note(s, '+1 ' + GG.RESOURCES.mushrooms.sym); }
-    if (kind === 'dig') { s.resources.scrap += 1; note(s, '+1 ' + GG.RESOURCES.scrap.sym); }
+    const amt = Math.max(1, Math.ceil(Math.sqrt(Game.globalMult(s))));
+    if (kind === 'forage') { s.resources.mushrooms += amt; note(s, '+' + amt + ' ' + GG.RESOURCES.mushrooms.sym); }
+    else if (kind === 'dig') { s.resources.scrap += amt; note(s, '+' + amt + ' ' + GG.RESOURCES.scrap.sym); }
+    else return 0;
+    return amt;
   };
 
   Game.assign = function (s, job, delta) {
