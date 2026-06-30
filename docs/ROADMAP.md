@@ -6,7 +6,12 @@ world: an **adventure pathway**, **per-faction reputation**, **inbound threats
 
 > **For future sessions:** this file holds the detailed task scopes. The
 > **vision & sequencing** now live in [`REDESIGN.md`](./REDESIGN.md) (agreed
-> 2026-06-30). Target: a **finishable, hours-to-days narrative roguelite-idle** —
+> 2026-06-30). The **full architecture + Era 1–3 integration plan** (approved
+> 2026-06-30) is in [`PLAN.md`](./PLAN.md) — read it first for context on
+> every pending phase (Era model, economy rebalance, lore engine, notable
+> titles, UI metamorphosis, pacing, and the full amended build order).
+>
+> Target: a **finishable, hours-to-days narrative roguelite-idle** —
 > re-centered on a **bounded reincarnation Saga** (a fixed ~3–5 lives that
 > resolve in a true meta-finale; mortality *is* prestige), **curated-exponential**
 > escalation (bounded, not endless), a **juice** feedback layer, and
