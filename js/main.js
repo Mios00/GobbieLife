@@ -63,16 +63,38 @@
     }
   );
 
-  // simulation tick
+  // ---- simulation tick (wall-clock dt) ----
+  // Step the sim on REAL elapsed time, not a fixed 1.0s. Every cadence
+  // subsystem accumulates dt, so a larger step is correct — which keeps a
+  // throttled/backgrounded tab time-accurate instead of running slow. Absurd
+  // jumps (machine sleep, a paused debugger) are skipped; genuine long absences
+  // are credited on load by Game.applyOffline, not here.
+  let lastTick = Date.now();
   setInterval(() => {
-    if (!started || !state) return;
-    Game.tick(state, C.tickMs / 1000);
+    const now = Date.now();
+    if (!started || !state) { lastTick = now; return; } // keep the clock fresh while paused
+    let dt = (now - lastTick) / 1000;
+    lastTick = now;
+    if (dt <= 0) return;
+    if (dt > 300) dt = C.tickMs / 1000; // pathological gap — let applyOffline own real absences
+    Game.tick(state, dt);
     for (const b of Game.drainBanners()) UI.fx.banner(b); // milestone fanfares
-    UI.render(state);
   }, C.tickMs);
 
-  // a faster render so raid countdown / breeding bar feel live
-  setInterval(() => { if (started && state) UI.render(state); }, 250);
+  // ---- render (decoupled, paint-aligned) ----
+  // One requestAnimationFrame loop replaces the old dual setInterval render.
+  // Per-panel HTML memoization (ui.js) means a panel's DOM is rewritten only
+  // when its output actually changes, so painting every frame is cheap and a
+  // render can never destroy a button mid-click that isn't changing. Guarded so
+  // the headless test sandbox (no requestAnimationFrame) is a harmless no-op.
+  const raf = (typeof requestAnimationFrame === 'function')
+    ? requestAnimationFrame
+    : (fn) => (typeof setTimeout === 'function' ? setTimeout(() => fn(Date.now()), 16) : 0);
+  function frame() {
+    if (started && state) UI.render(state);
+    raf(frame);
+  }
+  raf(frame);
 
   // autosave
   setInterval(() => { if (state) Game.save(state); }, 5000);

@@ -52,8 +52,38 @@
     },
   };
 
+  // ---- per-panel HTML memoization --------------------------------
+  // The render loop runs every animation frame, but a panel's innerHTML is only
+  // rewritten when its generated markup actually changes. This (a) makes
+  // frame-rate painting cheap — a string build + compare, with no DOM reflow
+  // when nothing changed — and (b) fixes dropped clicks: a panel whose output is
+  // unchanged never destroys/recreates its buttons mid-gesture, so a press can't
+  // be lost to a re-render. The memo resets when the state object identity
+  // changes (a new or imported tale) so the next paint is a full one.
+  let _memo = Object.create(null);
+  let _memoState = null;
+  function setHTML(el, key, html) {
+    if (!el) return;
+    if (_memo[key] === html) return; // unchanged → leave the DOM (and its live nodes) alone
+    _memo[key] = html;
+    el.innerHTML = html;
+  }
+
+  // snap the eased "count-up" display straight to the true values. Called after
+  // any discrete player action so a tap / build / trade moves the headline
+  // number INSTANTLY, instead of easing toward it (which could round a +1 back
+  // to no visible change on the action frame).
+  UI.snapResources = function (s) {
+    if (disp && dispState === s) {
+      disp.mushrooms = s.resources.mushrooms;
+      disp.scrap = s.resources.scrap;
+      disp.shinies = s.resources.shinies;
+    }
+  };
+
   // ---------------------------------------------------------------
   UI.render = function (s) {
+    if (s !== _memoState) { _memo = Object.create(null); _memoState = s; } // new/imported tale → full repaint
     renderHeader(s);
     renderResources(s);
     renderGoblins(s);
@@ -88,10 +118,10 @@
         <span class="goaldest">→ ${esc(goal.title)}</span>
         <span class="gbar"><span style="width:${Math.round(goal.frac * 100)}%"></span></span>
       </div>` : '';
-    $('hdr').innerHTML =
+    setHTML($('hdr'), 'hdr',
       `<div class="title">GOBLIN <span class="sub">— a tale of growth &amp; shenanigans</span></div>
        <div class="meta"><b>${esc(s.name)}</b> &nbsp;·&nbsp; ${esc(chap)}
-         &nbsp;·&nbsp; <span class="silly" title="The Silliness Index you set at the start">Silliness ${pct}% · ${esc(UI.sillyTier(s.silliness))}</span>${renown}${twilight}${comet}${reckon}</div>${goalHtml}`;
+         &nbsp;·&nbsp; <span class="silly" title="The Silliness Index you set at the start">Silliness ${pct}% · ${esc(UI.sillyTier(s.silliness))}</span>${renown}${twilight}${comet}${reckon}</div>${goalHtml}`);
   }
 
   // shared tier naming + flavor for the Silliness Index (0..1)
@@ -114,13 +144,23 @@
 
   // displayed resource values ease toward the real ones so the hoard "rolls" up
   // instead of snapping. Re-seeded on a new/imported tale (different state object).
-  let dispState = null, disp = null;
+  let dispState = null, disp = null, dispT = 0;
   function renderResources(s) {
     const r = Game.rates(s);
     if (s !== dispState || !disp) {
       dispState = s;
       disp = { mushrooms: s.resources.mushrooms, scrap: s.resources.scrap, shinies: s.resources.shinies };
+      dispT = 0;
     }
+    // frame-rate-independent easing: the render loop now runs at the display's
+    // refresh rate (rAF), so ease by REAL elapsed time, not a fixed per-frame
+    // step — otherwise the count-up "roll" would finish almost instantly at
+    // 60fps. Rate tuned to match the old feel (~0.3 of the gap per 0.25s).
+    const now = Date.now();
+    let ddt = dispT ? (now - dispT) / 1000 : 0.25;
+    dispT = now;
+    if (ddt > 1) ddt = 1;
+    const k = 1 - Math.exp(-1.427 * ddt);
     const rows = ['mushrooms', 'scrap', 'shinies'].map((res) => {
       const def = GG.RESOURCES[res];
       const rate = r[res] || 0;
@@ -129,7 +169,7 @@
       const actual = s.resources[res];
       let shown = disp[res];
       const dabs = Math.abs(actual - shown);
-      shown = (dabs < 0.5 || dabs > Math.max(40, actual * 0.4)) ? actual : shown + (actual - shown) * 0.3;
+      shown = (dabs < 0.5 || dabs > Math.max(40, actual * 0.4)) ? actual : shown + (actual - shown) * k;
       disp[res] = shown;
       // shinies are mostly lump-sum (raids/trade); only show a rate once
       // something produces them passively (the Brewery).
@@ -146,7 +186,7 @@
     const mult = Game.globalMult(s);
     const tier = Game.magnitude(s.totals.shiniesTotal);
     const multStr = mult > 1.0001 ? ` · ×${mult < 10 ? mult.toFixed(1) : Math.round(mult)} prod` : '';
-    $('resources').innerHTML = `<h2>Hoard <span class="cap">${esc(tier + multStr)}</span></h2>${rows}`;
+    setHTML($('resources'), 'resources', `<h2>Hoard <span class="cap">${esc(tier + multStr)}</span></h2>${rows}`);
   }
 
   function renderGoblins(s) {
@@ -192,19 +232,19 @@
       <div class="vcomp">${esc(comp.join('   ·   '))}</div>
     </div>`;
 
-    $('goblins').innerHTML =
+    setHTML($('goblins'), 'goblins',
       `${vista}
        <h2>Tribe <span class="cap">${s.population}/${cap}</span></h2>
        <div class="idle">Idle goblins: <b>${idle}</b></div>
        ${jobRow('forage')}${jobRow('dig')}${jobRow('raid')}
-       ${breed}`;
+       ${breed}`);
   }
 
   function renderNotables(s) {
     const el = $('notables');
     if (!el) return;
     const list = s.notables || [];
-    if (!list.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+    if (!list.length) { el.style.display = 'none'; setHTML(el, 'notables', ''); return; }
     el.style.display = '';
     const ageWord = (nb) => {
       const r = nb.age / Math.max(1, nb.life);
@@ -218,8 +258,8 @@
         <span class="nmark">☗</span>
         <span class="ntext"><b>${esc(nb.name)} ${esc(nb.role)}</b><span class="ndesc">${esc(adjOf(nb.trait))} · ${ageWord(nb)}</span></span>
       </div>`).join('');
-    el.innerHTML = `<h2>Notable Goblins <span class="cap">${list.length}/${Game.notableCap(s)}</span></h2>${rows}
-      <div class="hint">They live, squabble, age, and pass on. Watch the Chronicle for their deeds.</div>`;
+    setHTML(el, 'notables', `<h2>Notable Goblins <span class="cap">${list.length}/${Game.notableCap(s)}</span></h2>${rows}
+      <div class="hint">They live, squabble, age, and pass on. Watch the Chronicle for their deeds.</div>`);
   }
 
   function renderActions(s) {
@@ -249,7 +289,7 @@
       </div>`;
     }
     html += `<div class="log">${s.log.map((l) => `<div>${esc(l)}</div>`).join('')}</div>`;
-    $('actions').innerHTML = html;
+    setHTML($('actions'), 'actions', html);
   }
 
   function renderBuild(s) {
@@ -301,7 +341,7 @@
     // teaser so the gradual reveal doesn't feel like a dead end
     const moreToCome = Object.keys(GG.BUILDINGS).some((id) => !Game.buildingRevealed(s, id));
     if (moreToCome) html += `<div class="hint moreBuild">The warren whispers of more to build as it grows…</div>`;
-    $('build').innerHTML = html;
+    setHTML($('build'), 'build', html);
   }
 
   // friendly name for an unlock gate (which building grants it)
@@ -314,13 +354,13 @@
   // a riddle that hints where you're heading without ever naming it.
   function renderOracle(s) {
     const el = $('destiny');
-    if (!s.unlocks.destiny) { el.innerHTML = ''; el.style.display = 'none'; return; }
+    if (!s.unlocks.destiny) { el.style.display = 'none'; setHTML(el, 'destiny', ''); return; }
     el.style.display = '';
     const body = s.lastOracle
       ? `<div class="oracle">${esc(s.lastOracle)}</div>`
       : `<div class="hint">The Totem is listening. It has not yet decided what to say of you.</div>`;
-    el.innerHTML = `<h2>The Oracle <span class="cap">the Totem's riddle</span></h2>${body}
-      <div class="hint">It will never name your destiny outright. Listen — and decide what you hear.</div>`;
+    setHTML(el, 'destiny', `<h2>The Oracle <span class="cap">the Totem's riddle</span></h2>${body}
+      <div class="hint">It will never name your destiny outright. Listen — and decide what you hear.</div>`);
   }
 
   // how the powers of the world regard you (only factions you've discovered)
@@ -328,7 +368,7 @@
     const el = $('standing');
     if (!el) return;
     const known = Game.knownFactions(s);
-    if (!known.length) { el.innerHTML = ''; el.style.display = 'none'; return; }
+    if (!known.length) { el.style.display = 'none'; setHTML(el, 'standing', ''); return; }
     el.style.display = '';
     const total = Object.keys(GG.FACTIONS).length;
     const cls = (v) => v <= -55 ? 'fbad' : v < -20 ? 'flow' : v < 15 ? 'fmid' : v < 75 ? 'fgood' : 'fally';
@@ -344,7 +384,7 @@
     const hint = unknown > 0
       ? `<div class="hint">${unknown} power${unknown === 1 ? '' : 's'} of the world still beyond your knowing…</div>`
       : `<div class="hint">You have heard of every power in the world.</div>`;
-    el.innerHTML = `<h2>Standing <span class="cap">${known.length}/${total} known</span></h2>${rows}${hint}`;
+    setHTML(el, 'standing', `<h2>Standing <span class="cap">${known.length}/${total} known</span></h2>${rows}${hint}`);
   }
 
   function renderAnnals(s) {
@@ -360,8 +400,8 @@
     const footer = remaining > 0
       ? `<div class="hint">${remaining} more deed${remaining === 1 ? '' : 's'} wait to be earned…</div>`
       : `<div class="hint">Every deed earned. A complete legend.</div>`;
-    $('annals').innerHTML =
-      `<h2>Annals <span class="cap">${earned.length}/${list.length}</span></h2>${rows}${footer}`;
+    setHTML($('annals'), 'annals',
+      `<h2>Annals <span class="cap">${earned.length}/${list.length}</span></h2>${rows}${footer}`);
   }
 
   // Only rebuild the Chronicle when a new entry actually arrives, and never
@@ -515,6 +555,7 @@
       else if (act === 'import') onChange('import');
       else if (act === 'hardreset') onChange('restart');
       else return;
+      UI.snapResources(s); // a discrete action moves the number NOW, not on an ease
       onChange('update');
     });
   };
