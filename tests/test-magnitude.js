@@ -40,7 +40,7 @@ ok(near(Game.rates(b).scrap, GG.BUILDINGS.scrapHeap.prod.scrap*2*3), 'building s
 // the full multiplier reaches orders of magnitude (bounded, finite ladder)
 const full=Game.fresh(0.3); for(const def of GG.MILESTONES) full.milestones[def.id]=true;
 const top=Game.globalMult(full);
-ok(top>500 && top<2000, 'a complete milestone ladder is ~3 orders of magnitude ('+Math.round(top)+'×)');
+ok(top>100 && top<300, 'a complete milestone ladder is ~2 orders of magnitude ('+Math.round(top)+'×)');
 
 // magnitude bands name a number by its rank
 ok(Game.magnitude(0)==='a Pittance', 'zero is a Pittance');

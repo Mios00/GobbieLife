@@ -113,7 +113,7 @@ fun → make it loop → then add breadth.** `F*`/`L*` scopes are in `REDESIGN.m
 5. [x] **C1** — Lore compose engine (authored skeleton + generative slot-fill) ✅
 6. [x] **N1** — Notable identity (procedural, evolving titles — notables only) ✅
 7. [x] **F6** — Era model + UI metamorphosis ✅
-8. [ ] **F7** — Economy rebalance + building caps + tier gates + pacing
+8. [x] **F7** — Economy rebalance + building caps + tier gates + pacing ✅
 9. [ ] **E3** — Hold (grip) + succession  *(heir now also feeds L1)*
 10. [ ] **E4** — The Reckoning content + the Final Choice
 11. [ ] **L1** — Succession / reincarnation (world persists; bounded to `sagaLives`)

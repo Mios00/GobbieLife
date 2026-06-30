@@ -75,6 +75,7 @@
       comet: mort.comet,   // the Prophesied Year countdown (world doom)
       ending: null,        // set when game is finished
       eraSeen: {},         // which era transitions have bannered (keys: 2, 3)
+      breakthroughs: {},   // which GG.BREAKTHROUGHS have fired (keyed by id)
       log: [],             // short transient action feedback
     };
   }
@@ -114,15 +115,22 @@
     return (s.peakPop || s.population || 1) >= need;
   };
 
+  // diminishing returns for producer buildings: linear up to level 5, then each
+  // additional level contributes only 60% as much (halves the late-game runaway).
+  function drProd(lvl) {
+    return lvl <= 5 ? lvl : 5 + (lvl - 5) * 0.6;
+  }
+
   // production per second (net), plus a breakdown for the UI
   Game.rates = function (s) {
     const r = { mushrooms: 0, scrap: 0, shinies: 0 };
-    // building passive
+    // building passive — producers get DR; other roles are level-independent effects
     for (const id in s.buildings) {
       const lvl = s.buildings[id];
       const def = GG.BUILDINGS[id];
       if (lvl > 0 && def.prod) {
-        for (const res in def.prod) r[res] += def.prod[res] * lvl;
+        const eff = (def.role === 'producer') ? drProd(lvl) : lvl;
+        for (const res in def.prod) r[res] += def.prod[res] * eff;
       }
     }
     // assigned goblins
@@ -139,9 +147,10 @@
     // balance, and every pinned-rate test, exactly as before).
     const mult = Game.globalMult(s);
     r.mushrooms *= mult; r.scrap *= mult; r.shinies *= mult;
-    // upkeep — the WHOLE settlement eats, goblins and guests alike (NOT scaled,
-    // so growth outruns mouths the way escalation should).
+    // upkeep — goblins and guests eat (NOT scaled); larger settlements also need
+    // maintenance proportional to their tier (keeps big warrens from being free).
     r.mushrooms -= Game.totalPop(s) * C.upkeepPerGoblin;
+    r.mushrooms -= Game.settlementTier(s) * (C.tierUpkeepPerSec || 0);
     return r;
   };
 
@@ -400,7 +409,7 @@
   Game.build = function (s, id, count) {
     const def = GG.BUILDINGS[id];
     let want = count === 'max' ? Infinity : (count || 1);
-    if (def.max === 1) want = 1; // one-of buildings ignore bulk
+    if (def.max != null) want = Math.min(want, Math.max(0, def.max - s.buildings[id]));
     let built = 0;
     while (built < want && buildOne(s, id)) built++;
     if (built === 1) note(s, 'Built ' + def.name + '.');
@@ -1096,6 +1105,10 @@
     const es = (m.eraSeen && typeof m.eraSeen === 'object') ? m.eraSeen : {};
     m.eraSeen = {};
     for (const k of [2, 3]) { if (es[k]) m.eraSeen[k] = true; }
+    // breakthroughs — only known ids from GG.BREAKTHROUGHS (rejects unknown/proto keys)
+    const bk = (m.breakthroughs && typeof m.breakthroughs === 'object') ? m.breakthroughs : {};
+    m.breakthroughs = {};
+    for (const br of (GG.BREAKTHROUGHS || [])) { if (bk[br.id]) m.breakthroughs[br.id] = true; }
     m.chronicle = Array.isArray(m.chronicle)
       ? m.chronicle.filter((c) => c && typeof c.msg === 'string')
           .map((c) => ({ t: n(c.t, Date.now()), msg: c.msg,
