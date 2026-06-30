@@ -79,10 +79,19 @@
     const cometNear = s.comet && s.comet.left > 0 && (s.comet.left / s.comet.total) < 0.25;
     const comet = (!s.ending && cometNear)
       ? ` &nbsp;·&nbsp; <span class="cometw" title="The Prophesied Year draws near">☄ Comet</span>` : '';
+    // next-goal strip — a concrete objective with progress (hidden once the
+    // Reckoning/ending takes over, where the goal is no longer "advance a chapter")
+    const goal = (!s.ending && !(s.endgame && s.endgame.active)) ? Game.nextGoal(s) : null;
+    const goalHtml = goal ? `<div class="goalbar" title="Your next chapter requirement">
+        <span class="goalmark">◷</span><span class="goaltxt">Next: ${esc(goal.label)}</span>
+        <span class="goalprog">${fmt(goal.have)}/${fmt(goal.need)}</span>
+        <span class="goaldest">→ ${esc(goal.title)}</span>
+        <span class="gbar"><span style="width:${Math.round(goal.frac * 100)}%"></span></span>
+      </div>` : '';
     $('hdr').innerHTML =
       `<div class="title">GOBLIN <span class="sub">— a tale of growth &amp; shenanigans</span></div>
        <div class="meta"><b>${esc(s.name)}</b> &nbsp;·&nbsp; ${esc(chap)}
-         &nbsp;·&nbsp; <span class="silly" title="The Silliness Index you set at the start">Silliness ${pct}% · ${esc(UI.sillyTier(s.silliness))}</span>${renown}${twilight}${comet}${reckon}</div>`;
+         &nbsp;·&nbsp; <span class="silly" title="The Silliness Index you set at the start">Silliness ${pct}% · ${esc(UI.sillyTier(s.silliness))}</span>${renown}${twilight}${comet}${reckon}</div>${goalHtml}`;
   }
 
   // shared tier naming + flavor for the Silliness Index (0..1)
@@ -215,6 +224,8 @@
 
   function renderActions(s) {
     let html = '<h2>Do Things</h2>';
+    const tip = Game.onboardingTip(s);
+    if (tip) html += `<div class="onbtip">${esc(tip)}</div>`;
     html += `<button class="act" data-act="manual" data-kind="forage">Scrabble for mushrooms</button>`;
     html += `<button class="act" data-act="manual" data-kind="dig">Pry up scrap</button>`;
 

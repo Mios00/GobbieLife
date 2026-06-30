@@ -282,6 +282,48 @@
     return t;
   };
 
+  // ---- next-goal tracker (clarity / onboarding) ----------------
+  // Chapters advance on hidden requirements (data.js GG.CHAPTERS). Surface the
+  // NEXT one as a concrete objective with progress, so the player always knows
+  // what to chase. Purely derived from state — no new persistent field.
+  const GOAL_META = {
+    buildings:         { get: (s) => Game.distinctBuildings(s), label: (n) => `raise ${n} kind${n > 1 ? 's' : ''} of structure` },
+    buildingsDistinct: { get: (s) => Game.distinctBuildings(s), label: (n) => `raise ${n} different structures` },
+    population:        { get: (s) => s.population,              label: (n) => `grow the tribe to ${n} goblins` },
+    shiniesTotal:      { get: (s) => Math.floor(s.totals.shiniesTotal), label: (n) => `earn ${n} shinies, all told` },
+    settle:            { get: (s) => s.settle,                  label: (n) => `root the settlement to ${n}` },
+    greatHall:         { get: (s) => s.buildings.greatHall,     label: () => `raise the Great Hall` },
+  };
+  // the objective for the chapter you're working toward, or null once the tale
+  // has reached its final chapter (the Reckoning takes over from there).
+  Game.nextGoal = function (s) {
+    const ch = GG.CHAPTERS[s.chapter]; // s.chapter is how many are DONE → this is the next
+    if (!ch || !ch.req) return null;
+    let pick = null;
+    for (const k in ch.req) {
+      const meta = GOAL_META[k]; if (!meta) continue;
+      const need = ch.req[k];
+      const have = meta.get(s);
+      const frac = need > 0 ? Math.max(0, Math.min(1, have / need)) : 1;
+      if (!pick || frac < pick.frac) pick = { have: Math.min(have, need), need, frac, label: meta.label(need) };
+    }
+    if (!pick) return null;
+    return { chapter: s.chapter + 1, title: ch.title, label: pick.label, have: pick.have, need: pick.need, frac: pick.frac };
+  };
+
+  // one gentle, contextual tip for the opening minutes; null once you've found
+  // your feet (Chapter II onward), so it retires on its own without any flag.
+  Game.onboardingTip = function (s) {
+    if (s.chapter >= 2 || s.ending) return null;
+    if (Game.distinctBuildings(s) === 0)
+      return 'New here? Tap “Scrabble for mushrooms” and “Pry up scrap” to gather, then raise your first structure under Build.';
+    if (!s.unlocks.breeding)
+      return 'Raise a Burrow next — it lifts your goblin cap and lets the tribe start breeding on its own.';
+    if (s.population < 4)
+      return 'Keep mushrooms stocked and your goblins will breed. Assign idle goblins to Forage and Dig to grow faster.';
+    return null;
+  };
+
   // ---- verbs ----------------------------------------------------
   function note(s, msg) {
     s.log.unshift(msg);
