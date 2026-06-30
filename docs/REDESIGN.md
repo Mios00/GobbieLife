@@ -196,8 +196,12 @@ loop. Detailed scopes for `E*`/`T*` remain in `ROADMAP.md`.
 
 1. **F1 — Juice layer.** ✅ Floating `+N`, count-ups, button-press feedback,
    milestone fanfare banners (`GG.MILESTONES`). *(Shipped 2026-06-30.)*
-2. **F2 — Curated exponential rework.** Multiplicative buildings, named magnitude
-   tiers, milestone ×2s, tap scaling. Re-balance.
+2. **F2 — Curated exponential rework.** ✅ Milestone production multipliers
+   (`Game.globalMult`), named magnitude tiers (`Game.magnitude`), tap scaling.
+   Derived from `s.milestones` (no new state). *(Shipped 2026-06-30. A deeper
+   per-building multiplicative re-balance is deferred to a focused tuning pass —
+   the milestone ladder already delivers the orders-of-magnitude escalation
+   without touching pinned base rates.)*
 3. **F3 — Next-goal tracker + onboarding.** Surface chapter reqs; guided opening.
 4. **F4 — Story-delivery split.** Saga vs World; moment-cards + banners; pacing.
 5. **E3 — Hold (grip) + succession.** *(Already next; the heir now also feeds L1.)*

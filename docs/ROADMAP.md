@@ -98,10 +98,10 @@ The order below supersedes the old "blended" sequence. New phases **F**
 fun → make it loop → then add breadth.** `F*`/`L*` scopes are in `REDESIGN.md`;
 `E*`/`T*` scopes are in the phase sections below.
 
-**Done:** T0.1 ✅ · T0.2 ✅ · T0.3 ✅ · E1 ✅ · E2 ✅ · F1 ✅
+**Done:** T0.1 ✅ · T0.2 ✅ · T0.3 ✅ · E1 ✅ · E2 ✅ · F1 ✅ · F2 ✅
 
 1. [x] **F1** — Juice layer (floating `+N`, count-ups, milestone fanfares) ✅
-2. [ ] **F2** — Curated-exponential rework (multiplicative buildings, magnitude tiers, milestone ×2)
+2. [x] **F2** — Curated-exponential rework (milestone production multipliers, magnitude tiers, tap scaling) ✅
 3. [ ] **F3** — Next-goal tracker + onboarding
 4. [ ] **F4** — Story-delivery split (Saga vs World; moment-cards + banners)
 5. [ ] **E3** — Hold (grip) + succession  *(heir now also feeds L1)*
@@ -289,6 +289,7 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-30 — **F2** — Curated-exponential escalation: each milestone now grants a persistent global **production multiplier** (`mult`), `Game.globalMult` = their product (×1 fresh → ~×700 across a full bounded ladder, ~3 orders of magnitude). `Game.rates` scales all production by it (upkeep unscaled); manual taps scale by `sqrt(mult)`. **Named magnitude tiers** (`GG.MAGNITUDES` / `Game.magnitude` — a Pittance → a God's Ransom) shown as the Hoard rank + a `×N prod` prosperity caption. Derived purely from the already-sanitized `s.milestones` → **no new persistent state**; every pinned-rate test stays green. 20 tests + browser smoke. 279 total green.
 - 2026-06-30 — **F1** — Juice layer: floating `+N` gains on manual clicks, count-up tweening of the Hoard, button-press feedback, and **milestone fanfare banners** (`GG.MILESTONES` — scale thresholds fire once via `Game.checkMilestones`, drained to on-screen banners by the boot loop; `s.milestones` sanitized + primed on load so advanced saves don't banner retroactively). CSP-safe (DOM/CSS only, `prefers-reduced-motion` honoured). 20 tests + real-browser smoke. 259 total green.
 - 2026-06-30 — **Scope** — set the target to a **finishable, hours-to-days narrative roguelite-idle**: bounded the reincarnation loop to a fixed ~3–5-life **Saga** (`CONFIG.sagaLives`) that resolves in a **true meta-finale** (L4); relaxed escalation to a finite per-life curve; shrank the Legend tree to ~6–10 upgrades. Deliberately *not* chasing weeks-scale retention (protects the hand-authored writing + a real ending).
 - 2026-06-30 — **Redesign** — added [`REDESIGN.md`](./REDESIGN.md): re-centered the game on a reincarnation/legacy prestige loop (mortality = prestige), curated-exponential escalation, a juice feedback layer, and story-delivery hierarchy. New front-loaded phases **F** (Foundations of Fun: F1–F5) and **L** (Legacy Loop: L1–L4); E7/dynasty absorbed into the loop; build order re-sequenced (make one life fun → make it loop → add breadth).

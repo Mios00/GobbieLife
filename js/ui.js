@@ -132,7 +132,12 @@
         <span class="rrate ${rate < 0 ? 'neg' : ''}">${showRate ? sign(rate) + '/s' : ''}</span>
       </div>`;
     }).join('');
-    $('resources').innerHTML = `<h2>Hoard</h2>${rows}`;
+    // caption: the hoard's magnitude rank + your prosperity multiplier so the
+    // escalation is legible at a glance (a Pouch → a Dragon's Hoard · ×8).
+    const mult = Game.globalMult(s);
+    const tier = Game.magnitude(s.totals.shiniesTotal);
+    const multStr = mult > 1.0001 ? ` · ×${mult < 10 ? mult.toFixed(1) : Math.round(mult)} prod` : '';
+    $('resources').innerHTML = `<h2>Hoard <span class="cap">${esc(tier + multStr)}</span></h2>${rows}`;
   }
 
   function renderGoblins(s) {
@@ -484,9 +489,9 @@
       const s = getState();
       const act = t.dataset.act;
       if (act === 'manual') {
-        Game.manual(s, t.dataset.kind);
+        const amt = Game.manual(s, t.dataset.kind);
         const sym = t.dataset.kind === 'dig' ? GG.RESOURCES.scrap.sym : GG.RESOURCES.mushrooms.sym;
-        UI.fx.floatText(e.clientX, e.clientY, '+1 ' + sym);
+        UI.fx.floatText(e.clientX, e.clientY, '+' + amt + ' ' + sym);
       }
       else if (act === 'assign') Game.assign(s, t.dataset.job, parseInt(t.dataset.d, 10));
       else if (act === 'build') Game.build(s, t.dataset.id, s.buyAmt || 1);
