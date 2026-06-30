@@ -84,6 +84,8 @@
   // ---------------------------------------------------------------
   UI.render = function (s) {
     if (s !== _memoState) { _memo = Object.create(null); _memoState = s; } // new/imported tale → full repaint
+    const appEl = $('app');
+    if (appEl) appEl.className = 'era-' + GG.Game.era(s);
     renderHeader(s);
     renderResources(s);
     renderGoblins(s);
