@@ -256,7 +256,7 @@
     };
     const rows = list.map((nb) => `<div class="nrow">
         <span class="nmark">☗</span>
-        <span class="ntext"><b>${esc(nb.name)} ${esc(nb.role)}</b><span class="ndesc">${esc(adjOf(nb.trait))} · ${ageWord(nb)}</span></span>
+        <span class="ntext"><b>${esc(GG.Story.notableTitle(nb))}</b><span class="ndesc">${esc(adjOf(nb.trait))} · ${ageWord(nb)}</span></span>
       </div>`).join('');
     setHTML(el, 'notables', `<h2>Notable Goblins <span class="cap">${list.length}/${Game.notableCap(s)}</span></h2>${rows}
       <div class="hint">They live, squabble, age, and pass on. Watch the Chronicle for their deeds.</div>`);

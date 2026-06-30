@@ -626,12 +626,18 @@
   // ---- notable goblins (named individuals who live, act, age, and die) ----
   const traitOf = (id) => GG.NOTABLE.traits.find((t) => t.id === id) || GG.NOTABLE.traits[0];
   function rollLife() { return 900 + Math.random() * 2100; } // 15–50 min of ACTIVE play
+  function notableTitle(nb) { return GG.Story.notableTitle(nb); }
   function makeNotable(s) {
     s.notableSeq = (s.notableSeq || 0) + 1;
     return {
       id: s.notableSeq, name: pickOne(GG.NOTABLE.names), role: pickOne(GG.NOTABLE.roles),
-      trait: pickOne(GG.NOTABLE.traits).id, age: 0, life: rollLife(),
+      trait: pickOne(GG.NOTABLE.traits).id, age: 0, life: rollLife(), titleTier: 0,
     };
+  }
+  function advanceTitleTier(s, nb, reason) {
+    if (nb.titleTier >= 3) return;
+    nb.titleTier += 1;
+    chronicle(s, `${notableTitle(nb)} has become ${reason}.`, 'milestone');
   }
   function notableActs(s, nb) {
     const tr = traitOf(nb.trait);
@@ -641,6 +647,8 @@
       gain(s, res, Math.round(lo + Math.random() * (hi - lo)));
     }
     if (tr.lean) for (const k in tr.lean) s.stats[k] += tr.lean[k];
+    // 10% chance a notable deed earns them a title upgrade
+    if (Math.random() < 0.10) advanceTitleTier(s, nb, 'a name worth remembering');
   }
   function killNotableOldAge(s, nb) {
     const tr = traitOf(nb.trait);
@@ -666,7 +674,16 @@
       const tr = traitOf(nb.trait);
       chronicle(s, `A goblin named ${nb.name} starts to stand out from the crowd — ${tr.adj.toLowerCase()}, taking up the part of ${nb.role.replace('the ', '')}. The warren has a new notable.`, 'event');
     }
-    // 3) someone does something in-character
+    // 3) age-milestone title advancement (20% at 5 min, 10% at 10 min, 5% at 20 min)
+    for (const nb of s.notables) {
+      if (nb.titleTier < 1 && nb.age >= 300 && Math.random() < 0.20)
+        advanceTitleTier(s, nb, 'someone the others look to');
+      else if (nb.titleTier < 2 && nb.age >= 600 && Math.random() < 0.10)
+        advanceTitleTier(s, nb, 'a name in the warren\'s stories');
+      else if (nb.titleTier < 3 && nb.age >= 1200 && Math.random() < 0.05)
+        advanceTitleTier(s, nb, 'a legend in their own right');
+    }
+    // 4) someone does something in-character
     if (s.notables.length && Math.random() < 0.55) notableActs(s, pickOne(s.notables));
   }
 
@@ -1006,6 +1023,7 @@
           trait: validTrait(x.trait) ? x.trait : GG.NOTABLE.traits[0].id,
           age: nonneg(x.age),
           life: Math.max(60, nonneg(x.life, 1200)),
+          titleTier: Math.min(3, intNonneg(x.titleTier, 0)),
         }))
       : [];
     const jobs = {}; for (const k of ['forage', 'dig', 'raid']) jobs[k] = intNonneg(m.jobs && m.jobs[k]); m.jobs = jobs;
