@@ -85,6 +85,79 @@
     };
   };
 
+  // --- the lore compose engine (C1) -----------------------------
+  // A deterministic, seeded generative engine. Story.compose(templateId, ctx)
+  // looks up a template in GG.LORE_POOLS.templates and fills any {slot}s from
+  // the tagged pools — weighted by era and silliness register. A template with
+  // no slots (a Tier-1 authored set-piece) is returned verbatim. Output is plain
+  // text; the CALLER is responsible for esc() before any HTML insertion.
+  //
+  // Seeded so the same (templateId, ctx) always yields the same line — this
+  // makes tests deterministic AND lets a notable/event keep a stable identity
+  // across renders within a run. Reused by N1 (titles) and the event library.
+
+  // djb2 string hash → 32-bit unsigned, for seeding from a name/id string.
+  function hashStr(str) {
+    let h = 5381;
+    for (let i = 0; i < str.length; i++) h = (((h << 5) + h) + str.charCodeAt(i)) >>> 0;
+    return h >>> 0;
+  }
+  function resolveSeed(seed) {
+    if (typeof seed === 'number' && isFinite(seed)) return (seed >>> 0) || 1;
+    if (typeof seed === 'string' && seed.length) return hashStr(seed) || 1;
+    return 1;
+  }
+  // a small LCG (Numerical Recipes constants) → deterministic float in [0,1).
+  function seededRng(seed) {
+    let state = resolveSeed(seed);
+    return function () {
+      state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+      return state / 4294967296;
+    };
+  }
+  S.seededRng = seededRng;   // exposed for N1's per-notable seeding
+
+  // pick one entry from a named pool, honouring era preference + sill register.
+  function pickFromPool(slotName, era, sillRegister, rng) {
+    const pools = GG.LORE_POOLS || {};
+    const pool = pools[slotName] || [];
+    if (!pool.length) return '';
+    const textOf = (e) => (typeof e === 'string' ? e : (e && e.text) || '');
+    const sillOf = (e) => (typeof e === 'string' ? null : (e && e.sill) || null);
+    const eraOf = (e) => (typeof e === 'string' ? null : (e && e.era != null ? e.era : null));
+    // register filter: a sill-tagged entry only appears in its own register
+    let base = pool.filter((e) => { const t = sillOf(e); return t == null || t === sillRegister; });
+    if (!base.length) base = pool;
+    // era weighting: exclude other-era entries; weight era-matched ~3× over untagged
+    const weighted = [];
+    for (const e of base) {
+      const eg = eraOf(e);
+      if (era != null && eg != null && eg !== era) continue;     // wrong era → drop
+      const w = (era != null && eg === era) ? 3 : 1;             // matched era → favour
+      for (let i = 0; i < w; i++) weighted.push(e);
+    }
+    const cands = weighted.length ? weighted : base;
+    return textOf(cands[Math.floor(rng() * cands.length)] || cands[0]);
+  }
+
+  // ctx: { seed, sill (0..1), era, and any direct slot values e.g. name/faction }
+  S.compose = function (templateId, ctx) {
+    ctx = ctx || {};
+    const templates = (GG.LORE_POOLS && GG.LORE_POOLS.templates) || {};
+    const template = templates[templateId];
+    if (typeof template !== 'string') return '';
+    const rng = seededRng(ctx.seed);
+    // decide the register once, deterministically, from the seed + Silliness
+    const sillRegister = (rng() < (ctx.sill || 0)) ? 'silly' : 'earnest';
+    const era = (ctx.era != null) ? ctx.era : null;
+    return template.replace(/\{(\w+)\}/g, function (_m, slot) {
+      // a direct ctx value (a scalar like name/faction) wins over a pool draw
+      const v = ctx[slot];
+      if (v != null && typeof v !== 'object') return String(v);
+      return pickFromPool(slot, era, sillRegister, rng);
+    });
+  };
+
   // --- ambient & event beats ------------------------------------
   // Each beat: { text, lean } where lean tags which destiny it nudges
   // (used ONLY for weighting selection, not to change stats).

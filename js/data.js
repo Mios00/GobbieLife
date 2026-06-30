@@ -793,6 +793,61 @@
     { req: { greatHall: 1 },                        title: 'VI — The Reckoning' },
   ];
 
+  // --- Lore compose pools (C1) ----------------------------------
+  // Tagged vocabulary + sentence templates for the generative firehose. The
+  // engine lives in story.js (Story.compose); this is pure static data so it
+  // carries no injection surface. Pool entries are either a plain string or
+  // { text, era?, sill? }:
+  //   era  — only drawn when ctx.era matches (other-era entries are excluded;
+  //          era-matched entries are weighted ~3× over untagged ones).
+  //   sill — 'silly' entries appear only in silly-register draws, 'earnest'
+  //          only in earnest draws; untagged entries appear in both.
+  // Templates with {slots} are Tier-2 grammars; templates with NO slots are
+  // Tier-1 authored set-pieces and are returned verbatim (never proceduralized).
+  GG.LORE_POOLS = {
+    creature: [
+      'the rat-kings', 'a shadow-mushroom', 'the button-hoarders',
+      { text: 'the pale crawlers', era: 1 },
+      { text: 'a blind cave-fish the size of a dog', era: 1 },
+      { text: 'the rust-wyrms', era: 2 },
+      { text: 'a clattering clockwork beetle', era: 2 },
+      { text: 'the things that fell with the comet', era: 3 },
+      { text: 'a creature made mostly of teeth and apology', sill: 'silly' },
+      { text: 'a strongly-worded letter that learned to walk', sill: 'silly' },
+    ],
+    place: [
+      'the sunken shrine', 'Pit Twenty-Nine', 'the old spoil-heap',
+      { text: 'the weeping tunnel', era: 1 },
+      { text: 'the Ashen Shelf', era: 2 },
+      { text: 'the foundry-deeps', era: 2 },
+      { text: 'the blighted reach', era: 3 },
+      { text: 'a hole that is, frankly, just the worst', sill: 'silly' },
+    ],
+    deedVerb: [
+      'wrestled', 'outwitted', 'robbed blind', 'befriended', 'named and tamed',
+      'lost a staring contest to',
+      { text: 'filed paperwork against', sill: 'silly' },
+      { text: 'started a regrettable podcast about', sill: 'silly' },
+    ],
+    minorAct: [
+      'invents a louder way to do a quiet job, and the warren approves',
+      'counts the hoard twice and gets three different answers',
+      'returns from the dark wearing a hat that is clearly someone else\'s',
+      { text: 'argues with a mushroom and loses on a technicality', sill: 'silly' },
+      { text: 'declares itself mayor of a puddle and demands taxes', sill: 'silly' },
+    ],
+    // --- templates ----------------------------------------------
+    templates: {
+      // Tier 2 — slotted grammars. {name}/{faction} come from ctx; the rest
+      // are filled from the pools above, weighted by ctx.era and register.
+      deed: '{name} {deedVerb} {creature} at {place}.',
+      rumor: 'They say {creature} stir near {place} of late.',
+      ambient_minor: 'A goblin {minorAct}.',
+      // Tier 1 — authored set-pieces (no slots → returned verbatim, NEVER filled).
+      bargain_due: 'The witch\'s tooth-debt comes due. You traded a tooth for the idea of "more," and "more," it turns out, has been keeping a very careful ledger.',
+    },
+  };
+
   // --- Endings ---------------------------------------------------
   // The finale picks the ending with the highest score from current stats.
   // (Defined as a function so it can read the whole state.)
