@@ -109,7 +109,7 @@ fun → make it loop → then add breadth.** `F*`/`L*` scopes are in `REDESIGN.m
 1. [x] **F1** — Juice layer ✅
 2. [x] **F2** — Curated-exponential rework ✅
 3. [x] **F3** — Next-goal tracker + onboarding ✅
-4. [ ] **F4** — Typed & color-coded Chronicle *(next)*
+4. [x] **F4** — Typed & color-coded Chronicle ✅
 5. [ ] **C1** — Lore compose engine (authored skeleton + generative slot-fill)
 6. [ ] **N1** — Notable identity (procedural, evolving titles — notables only)
 7. [ ] **F6** — Era model + UI metamorphosis
@@ -808,6 +808,14 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-30 — **F4** — Typed & color-coded Chronicle: `chronicle(s, msg, kind)` with
+  8-value enum (`oracle|milestone|portent|saga|world|combat|build|event`); Oracle =
+  teal, milestone = gold, portent = amber, saga = bold, world = dimmed, combat = red,
+  build = green. Every call site tagged. `kind` validated in `sanitizeState` (unknown →
+  `'world'`); legacy entries (no `kind`) migrate to `'world'`. `saga` entries push to
+  `pendingBanners` so they surface as one-time banners via the existing drain loop.
+  `chronCount` dedup + scroll-lock preserved. 16 new tests (`tests/test-chronicle.js`);
+  353 total green.
 - 2026-06-30 — **Task 29 (Step 1 docs)** — Rewrote `ROADMAP.md` as single-cycle
   AI-coding-assistant task cards (F4, C1, N1, F6, F7, F8, W1 each with goal/scope/
   files+anchors/reuse/accept/test/guardrails). Added **Three Eras staging spine**

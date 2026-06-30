@@ -428,7 +428,9 @@
     if (s.legendIntro) html += `<div class="cintro">${esc(s.legendIntro)}</div>`;
     html += s.chronicle.map((c) => {                       // show the full stored history (up to 200)
       const grand = c.msg.startsWith('—') || c.msg.startsWith('═');
-      return `<div class="centry ${grand ? 'grand' : ''}">${esc(c.msg)}</div>`;
+      // kind comes from sanitizeState's allowlist — safe to use as a CSS class suffix
+      const kindCls = 'ck-' + (c.kind || 'world');
+      return `<div class="centry ${grand ? 'grand' : ''} ${kindCls}">${esc(c.msg)}</div>`;
     }).join('');
     el.innerHTML = html;
     el.scrollTop = atBottom ? el.scrollHeight : prevTop;   // follow if pinned, else keep your place

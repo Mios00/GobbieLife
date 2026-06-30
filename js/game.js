@@ -329,13 +329,20 @@
     s.log.unshift(msg);
     if (s.log.length > 4) s.log.length = 4;
   }
-  function chronicle(s, msg) {
-    s.chronicle.push({ t: Date.now(), msg });
+  // Valid chronicle kind values. Sanitize coerces anything else to 'world'.
+  // Kept at module scope so sanitizeState can share the same allowlist.
+  const CHRONICLE_KINDS = new Set(['oracle','milestone','portent','saga','world','combat','build','event']);
+  function chronicle(s, msg, kind) {
+    const k = CHRONICLE_KINDS.has(kind) ? kind : 'world';
+    s.chronicle.push({ t: Date.now(), msg, kind: k });
     if (s.chronicle.length > 200) s.chronicle.shift();
     // monotonic count of every entry ever added — the UI keys its dedup on this
     // so a re-render is never skipped due to timestamp/text collisions, even at
     // the 200-entry cap where length stops changing.
     s.chronCount = (s.chronCount || 0) + 1;
+    // saga beats are major narrative moments — queue a banner so they can't be missed.
+    // pendingBanners is drained each tick by the boot loop into UI.fx.banner().
+    if (k === 'saga') pendingBanners.push(msg);
   }
   Game.chronicle = chronicle;
 
@@ -373,7 +380,7 @@
     if (def.lean) for (const k in def.lean) s.stats[k] += def.lean[k];
 
     // first-time-built gets a chronicle beat
-    if (s.buildings[id] === 1) chronicle(s, firstBuildLine(id));
+    if (s.buildings[id] === 1) chronicle(s, firstBuildLine(id), 'build');
     if (id === 'greatHall') Game.beginReckoning(s); // begins the endgame act, not an instant end
     return true;
   }
@@ -488,7 +495,7 @@
       const nb = pickOne(s.notables);
       s.notables = s.notables.filter((x) => x.id !== nb.id);
       const tr = GG.NOTABLE.traits.find((t) => t.id === nb.trait) || GG.NOTABLE.traits[0];
-      chronicle(s, `${tr.adj} ${nb.name} ${nb.role} falls in the fighting. They will be a story told by the fire now — and a good one.`);
+      chronicle(s, `${tr.adj} ${nb.name} ${nb.role} falls in the fighting. They will be a story told by the fire now — and a good one.`, 'combat');
     }
     return true;
   }
@@ -537,7 +544,7 @@
     if (opt.risk && Math.random() < opt.risk * Game.riskFactor(s)) {
       if (loseGoblin(s)) note(s, 'A goblin did not come home.');
     }
-    if (opt.log) chronicle(s, opt.log);
+    if (opt.log) chronicle(s, opt.log, 'event');
     s.pendingChoice = null;
   };
 
@@ -575,7 +582,7 @@
     if (req.greatHall && s.buildings.greatHall < req.greatHall) ok = false;
     if (ok) {
       s.chapter += 1;
-      chronicle(s, '— ' + GG.Story.herald(s.chapter, s.silliness) + ' —');
+      chronicle(s, '— ' + GG.Story.herald(s.chapter, s.silliness) + ' —', 'saga');
       maybeDiscover(s); // the world gradually opens up as your tale advances
     }
   }
@@ -600,7 +607,7 @@
     oracleAccum = 0;
     const riddle = GG.Story.oracle(s);
     s.lastOracle = riddle;
-    chronicle(s, riddle);
+    chronicle(s, riddle, 'oracle');
   }
 
   // caravans and wanderers bring news of the wider world — mostly flavour, and
@@ -628,7 +635,7 @@
   }
   function notableActs(s, nb) {
     const tr = traitOf(nb.trait);
-    chronicle(s, `${tr.adj} ${nb.name} ${nb.role} ${tr.act}`);
+    chronicle(s, `${tr.adj} ${nb.name} ${nb.role} ${tr.act}`, 'event');
     if (tr.gain) for (const res in tr.gain) {
       const [lo, hi] = tr.gain[res];
       gain(s, res, Math.round(lo + Math.random() * (hi - lo)));
@@ -640,7 +647,7 @@
     s.notables = s.notables.filter((x) => x.id !== nb.id);
     if (s.population > 1) s.population -= 1;           // an old goblin truly passes
     s.stats.openness += 0.5;                            // wisdom handed down softens the warren
-    chronicle(s, `${nb.name} ${nb.role}, once ${tr.adj.toLowerCase()}, dies old and full of years and stolen soup. The young ones repeat their stories by the fire — getting half of it wrong, which is how stories survive.`);
+    chronicle(s, `${nb.name} ${nb.role}, once ${tr.adj.toLowerCase()}, dies old and full of years and stolen soup. The young ones repeat their stories by the fire — getting half of it wrong, which is how stories survive.`, 'event');
   }
 
   let notableAccum = 0;
@@ -657,7 +664,7 @@
       const nb = makeNotable(s);
       s.notables.push(nb);
       const tr = traitOf(nb.trait);
-      chronicle(s, `A goblin named ${nb.name} starts to stand out from the crowd — ${tr.adj.toLowerCase()}, taking up the part of ${nb.role.replace('the ', '')}. The warren has a new notable.`);
+      chronicle(s, `A goblin named ${nb.name} starts to stand out from the crowd — ${tr.adj.toLowerCase()}, taking up the part of ${nb.role.replace('the ', '')}. The warren has a new notable.`, 'event');
     }
     // 3) someone does something in-character
     if (s.notables.length && Math.random() < 0.55) notableActs(s, pickOne(s.notables));
@@ -697,7 +704,7 @@
     if (fx.take) for (const res in fx.take) gain(s, res, -Math.floor(s.resources[res] * fx.take[res]));
     if (fx.pop) { if (fx.pop > 0) s.population += fx.pop; else for (let i = 0; i < -fx.pop; i++) loseGoblin(s); }
     if (fx.lean) for (const k in fx.lean) s.stats[k] += fx.lean[k];
-    chronicle(s, v.text);
+    chronicle(s, v.text, 'event');
   }
   function tickEvents(s, dt) {
     if (s.pendingChoice || (s.raid && s.raid.active)) return; // don't pile up modals
@@ -732,7 +739,7 @@
       if (got) {
         s.achievements[a.id] = true;
         note(s, '✦ Annal earned: ' + a.name);
-        chronicle(s, '✦ The Annals remember: "' + a.name + '."');
+        chronicle(s, '✦ The Annals remember: "' + a.name + '."', 'milestone');
       }
     }
   }
@@ -752,7 +759,7 @@
       if (!got) continue;
       s.milestones[m.id] = true;
       const text = (m.silly && Math.random() < (s.silliness || 0)) ? m.silly : m.msg;
-      chronicle(s, '⚑ ' + text);
+      chronicle(s, '⚑ ' + text, 'milestone');
       pendingBanners.push(text);
     }
   }
@@ -793,7 +800,7 @@
     if (s.endgame.active) return;
     s.endgame.active = true; s.endgame.stage = 0; s.endgame.accum = 0;
     s.unlocks.finale = true;
-    chronicle(s, GG.Story.reckoningBeat(0, s.silliness));
+    chronicle(s, GG.Story.reckoningBeat(0, s.silliness), 'saga');
   };
   function tickReckoning(s, dt) {
     if (!s.endgame || !s.endgame.active || s.ending) return;
@@ -802,7 +809,7 @@
     s.endgame.accum = 0;
     s.endgame.stage += 1;
     const beat = GG.Story.reckoningBeat(s.endgame.stage, s.silliness);
-    if (beat != null) chronicle(s, beat);
+    if (beat != null) chronicle(s, beat, 'saga');
     else Game.finish(s); // out of beats → resolve (E4 will insert the Final Choice here)
   }
 
@@ -820,24 +827,24 @@
     }
     // twilight portents as your end nears
     const r = s.age / Math.max(1, s.lifespan);
-    if (r >= 0.9 && (s.twilight || 0) < 2) { s.twilight = 2; chronicle(s, GG.Story.twilightBeat(2, s.silliness)); }
-    else if (r >= 0.75 && (s.twilight || 0) < 1) { s.twilight = 1; chronicle(s, GG.Story.twilightBeat(1, s.silliness)); }
+    if (r >= 0.9 && (s.twilight || 0) < 2) { s.twilight = 2; chronicle(s, GG.Story.twilightBeat(2, s.silliness), 'portent'); }
+    else if (r >= 0.75 && (s.twilight || 0) < 1) { s.twilight = 1; chronicle(s, GG.Story.twilightBeat(1, s.silliness), 'portent'); }
     // the Comet (world doom), with rising portents
     if (s.comet && s.comet.total > 0) {
       s.comet.left = Math.max(0, s.comet.left - dt);
       const cl = s.comet.left / s.comet.total;
       const stage = cl <= 0 ? 4 : cl < 0.1 ? 3 : cl < 0.25 ? 2 : cl < 0.5 ? 1 : 0;
-      if (stage > (s.comet.warned || 0) && stage < 4) { s.comet.warned = stage; chronicle(s, GG.Story.cometBeat(stage, s.silliness)); }
+      if (stage > (s.comet.warned || 0) && stage < 4) { s.comet.warned = stage; chronicle(s, GG.Story.cometBeat(stage, s.silliness), 'portent'); }
       if (s.comet.left <= 0 && !s.endgame.active) {
         s.comet.warned = 4;
-        chronicle(s, 'The comet falls. The Prophesied Year has come, and the world will not be the same by morning. The Reckoning is upon you.');
+        chronicle(s, 'The comet falls. The Prophesied Year has come, and the world will not be the same by morning. The Reckoning is upon you.', 'saga');
         Game.beginReckoning(s);
         return;
       }
     }
     // death of old age
     if (s.age >= s.lifespan && !s.endgame.active) {
-      chronicle(s, 'And then, one quiet morning, the runt from the flooded hole simply does not wake. A whole impossible, ridiculous, legendary life reaches its end — and the tale rushes now to its Reckoning.');
+      chronicle(s, 'And then, one quiet morning, the runt from the flooded hole simply does not wake. A whole impossible, ridiculous, legendary life reaches its end — and the tale rushes now to its Reckoning.', 'saga');
       Game.beginReckoning(s);
     }
   }
@@ -848,7 +855,7 @@
     const d = Game.destiny(s);
     const id = d.lead || 'chaos';
     s.ending = { id, name: GG.ENDINGS[id].name, text: GG.Story.finale(id, s.silliness) };
-    chronicle(s, '════ THE END ════');
+    chronicle(s, '════ THE END ════', 'saga');
   };
 
   // ---- master tick ---------------------------------------------
@@ -1045,7 +1052,8 @@
     m.log = Array.isArray(m.log) ? m.log.filter((x) => typeof x === 'string').slice(0, 4) : [];
     m.chronicle = Array.isArray(m.chronicle)
       ? m.chronicle.filter((c) => c && typeof c.msg === 'string')
-          .map((c) => ({ t: n(c.t, Date.now()), msg: c.msg })).slice(-200)
+          .map((c) => ({ t: n(c.t, Date.now()), msg: c.msg,
+                         kind: CHRONICLE_KINDS.has(c.kind) ? c.kind : 'world' })).slice(-200)
       : [];
     m.chronCount = Math.max(intNonneg(m.chronCount, 0), m.chronicle.length); // never behind stored entries
     // ending: only a KNOWN, own-property ending id (rejects "__proto__" etc.)
