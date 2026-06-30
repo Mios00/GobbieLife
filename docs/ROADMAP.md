@@ -110,7 +110,7 @@ fun → make it loop → then add breadth.** `F*`/`L*` scopes are in `REDESIGN.m
 2. [x] **F2** — Curated-exponential rework ✅
 3. [x] **F3** — Next-goal tracker + onboarding ✅
 4. [x] **F4** — Typed & color-coded Chronicle ✅
-5. [ ] **C1** — Lore compose engine (authored skeleton + generative slot-fill)
+5. [x] **C1** — Lore compose engine (authored skeleton + generative slot-fill) ✅
 6. [ ] **N1** — Notable identity (procedural, evolving titles — notables only)
 7. [ ] **F6** — Era model + UI metamorphosis
 8. [ ] **F7** — Economy rebalance + building caps + tier gates + pacing
@@ -808,6 +808,18 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-30 — **C1** — Lore compose engine: `Story.compose(templateId, ctx)` — a
+  seeded, deterministic generative engine over tagged vocabulary pools (`GG.LORE_POOLS`
+  in data.js). A seeded LCG (`Story.seededRng`, djb2-hashed for string seeds) makes
+  every `(templateId, ctx)` reproducible — deterministic tests + stable within-run
+  identity (N1 will seed per-notable). Slot-fill from pools is weighted by `ctx.era`
+  (other-era entries excluded, era-matched favoured ~3×) and silliness register
+  (`sill`-tagged entries gated to their register). Tier-1 authored set-pieces (no
+  `{slot}`) return verbatim — never proceduralized. Output is plain text; callers
+  `esc()` at the HTML boundary (no new injection surface — pools are static data, no
+  state strings flow through). Existing tuned `S.ambient`/`S.worldNews` distributions
+  left untouched (N1 is the first consumer). 20 new tests (`tests/test-compose.js`);
+  373 total green across 19 files.
 - 2026-06-30 — **F4** — Typed & color-coded Chronicle: `chronicle(s, msg, kind)` with
   8-value enum (`oracle|milestone|portent|saga|world|combat|build|event`); Oracle =
   teal, milestone = gold, portent = amber, saga = bold, world = dimmed, combat = red,
