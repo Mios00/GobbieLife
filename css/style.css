@@ -158,6 +158,15 @@ button { font-family: inherit; cursor: pointer; }
 .cintro { color: var(--ink); border-left: 2px solid var(--moss); padding: 6px 0 6px 12px; margin-bottom: 12px; font-style: italic; }
 .centry { color: var(--dim); padding: 5px 0; border-bottom: 1px dotted #232b1c; font-size: 14px; }
 .centry.grand { color: var(--gold); text-align: center; font-style: italic; border-bottom: none; padding: 10px 0; }
+/* chronicle kind colors — class is assembled from the sanitized kind enum, never raw state */
+.ck-oracle   { color: #4ecaca; font-style: italic; }
+.ck-milestone { color: var(--gold); }
+.ck-portent  { color: #c08030; font-style: italic; }
+.ck-saga     { color: var(--ink); font-weight: bold; }
+.ck-world    { opacity: 0.75; }
+.ck-combat   { color: #d05050; }
+.ck-build    { color: #70b070; }
+.ck-event    { }
 
 /* build: bulk-buy pills */
 .buyamt { display: inline-flex; gap: 4px; }
