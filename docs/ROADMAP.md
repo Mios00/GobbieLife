@@ -95,7 +95,7 @@ world it pays off. (Dependencies in each task still apply; this order respects t
 2. [x] **T0.2** — Standing panel + deeds move standing ✅
 3. [x] **T0.3** — World news feed (flavor; also a discovery vector) ✅
 4. [x] **E1** — Finale → multi-act Reckoning scaffold ✅  *(E4 fills in the Final Choice; E5 the destiny climaxes)*
-5. [ ] **E2** — Protagonist mortality + the two clocks
+5. [x] **E2** — Protagonist mortality + the two clocks ✅
 6. [ ] **E3** — Hold (grip) + succession
 7. [ ] **T1.1** — Adventure zones + panel scaffold
 8. [ ] **T1.2** — Expeditions (send party, real-time, resolve)
@@ -181,11 +181,9 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - [x] **E1 — Finale → multi-act Reckoning (scaffold)** ✅
   - Done: `s.endgame = { active, stage, accum }`. Building the Great Hall now calls `Game.beginReckoning` (not `Game.finish`) — sets `unlocks.finale` and starts **The Reckoning**, a staged act. `tickReckoning` advances placeholder beats (`Story.reckoningBeat`, earnest+silly) every `reckoningStageSec`, then calls the relocated `Game.finish` to resolve the ending. The world keeps running during the act; a header **⚔ The Reckoning** marker shows while active. Sanitize/migrate for `s.endgame`. 19 tests.
   - **Hook for E4:** replace the auto-`Game.finish` at the end of `tickReckoning` with the player's **Final Choice**; E5 makes `reckoningBeat` destiny-specific.
-- [ ] **E2 — Protagonist mortality + the two clocks**
-  - Goal: you age and will die; the world has its own countdown.
-  - Scope: `s.age`, `s.lifespan` (long, randomised; ages only during active play, not offline), `s.renown`. `s.comet` (long countdown seeded at start / by omens) surfaced via Oracle + news. As age nears lifespan, a "twilight" pressure; protagonist death with no succession plan force-triggers the Reckoning/an ending.
-  - Accept: age advances, lifespan exists, comet counts down, both surfaced in UI; death is handled (not a silent stop); sanitize/migrate; tests.
-  - Deps: E1.
+- [x] **E2 — Protagonist mortality + the two clocks** ✅
+  - Done: `s.age` (advances only in active play, never offline), randomised `s.lifespan` (`lifespanMin/VarSec`), `s.renown` (grows with settlement tier each `renownEverySec`, +2 per raid, shown in header), and `s.comet = { left, total, warned }` (the Prophesied Year, `cometMin/VarSec`). `tickMortality` fires twilight portents at 75%/90% of life (`Story.twilightBeat`) and comet portents at 50/25/10% remaining (`Story.cometBeat`), earnest+silly. **Three roads to the Reckoning:** the Great Hall, death of old age, or the comet's arrival — each calls `Game.beginReckoning`. Header markers (Renown / ⏳ Twilight / ☄ Comet). Sanitize/migrate clamp all fields. 20 tests.
+  - **Hook for E3/E4:** death currently rushes straight to the Reckoning — E3 lets a named heir change that outcome; the Final Choice (E4) is where mortality is resolved.
 - [ ] **E3 — Hold (grip) + succession**
   - Goal: the power/legacy dilemma as a living system.
   - Scope: `s.hold` (fear vs loyalty composition from cruelty/openness/deeds), `s.heir` (chosen from notables), `s.resentment`. Name-an-heir action; revolt/betrayal rolls (low hold × cruelty × age); succession crises (rival claimant, heir can die on adventure). UI in the Notables/Standing area.
@@ -286,6 +284,7 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-29 — **E2** — Protagonist mortality (`age`/`lifespan`, active-play only) + Renown + the Comet (`s.comet`) countdown; twilight & comet portents; three roads to the Reckoning (Hall / old age / comet); header markers; sanitize/migrate. 20 tests.
 - 2026-06-29 — **E1** — Finale → multi-act Reckoning scaffold: Great Hall begins a staged endgame act (`s.endgame`, `tickReckoning`, `Story.reckoningBeat`) instead of ending instantly; resolves after its beats; header marker; sanitize/migrate. 19 tests.
 - 2026-06-29 — **T0.2 + T0.3** — Standing panel (color-coded, discovered factions only) + deeds move standing (raids/deals/welcoming races/trade); World news feed (caravan/wanderer flavor, comet seeds, second discovery vector). 18 tests.
 - 2026-06-29 — **Build order** — added a single Blended build order interleaving the world track (T*) and story track (E*); story is woven through, not appended after.

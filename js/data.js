@@ -17,6 +17,11 @@
     oracleEverySec: 100,     // how often the Totem utters an Oracle riddle
     worldNewsEverySec: 130,  // how often a caravan/wanderer brings news of the wider world
     reckoningStageSec: 18,   // seconds between beats of the endgame act (The Reckoning)
+    lifespanMinSec: 3000,    // protagonist lifespan (active play): min + up to +var
+    lifespanVarSec: 2400,
+    cometMinSec: 3600,       // the Comet / Prophesied Year countdown (active play)
+    cometVarSec: 3600,
+    renownEverySec: 30,      // how often your legend (renown) ticks up
     raidDurationSec: 16,
     breedBaseCostMush: 6,    // mushrooms per new goblin (scales with pop) — cheap, breed a big tribe
     breedScale: 1.15,        // per-goblin breed-cost growth (gentler so large warrens stay viable)
