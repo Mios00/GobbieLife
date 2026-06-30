@@ -4,12 +4,16 @@ A phased plan to grow GobbieLife from a warren idle-builder into a living fantas
 world: an **adventure pathway**, **per-faction reputation**, **inbound threats
 (duels & wars)**, and **world news / disasters**.
 
-> **For future sessions:** this file is the source of truth for what to build
-> next. Follow the **Blended build order** below (it already interleaves the
-> world track `T*` and the story track `E*`) — take the first unchecked item
-> whose dependencies are met, implement it end-to-end (data + logic + UI +
-> tests), tick its box, append a one-line note, and add a changelog entry. Keep
-> tasks one-cycle-sized; if a task feels bigger than a single session, split it.
+> **For future sessions:** this file holds the detailed task scopes. The
+> **vision & sequencing** now live in [`REDESIGN.md`](./REDESIGN.md) (agreed
+> 2026-06-30): the game is being re-centered on a **reincarnation/legacy
+> prestige loop** (mortality *is* prestige), **curated-exponential** escalation,
+> a **juice** feedback layer, and **story-delivery** hierarchy — front-loaded
+> as new phases **F** (Foundations of Fun) and **L** (Legacy Loop) *before* more
+> world breadth. Take the first unchecked item in the **Amended build order**
+> (in `REDESIGN.md`) whose dependencies are met, implement it end-to-end (data +
+> logic + UI + tests), tick its box, append a one-line note, and add a changelog
+> entry. Keep tasks one-cycle-sized; split anything bigger than a session.
 
 ---
 
@@ -85,39 +89,38 @@ world: an **adventure pathway**, **per-faction reputation**, **inbound threats
 
 ---
 
-## Blended build order  *(the world track `T*` and story track `E*`, interleaved)*
+## Amended build order  *(authoritative order lives in [`REDESIGN.md`](./REDESIGN.md))*
 
-This is the recommended single sequence. The two tracks are **not** done one after
-the other — story is woven through world-building so the finale grows alongside the
-world it pays off. (Dependencies in each task still apply; this order respects them.)
+The order below supersedes the old "blended" sequence. New phases **F**
+(Foundations of Fun) and **L** (Legacy Loop) are front-loaded — **make one life
+fun → make it loop → then add breadth.** `F*`/`L*` scopes are in `REDESIGN.md`;
+`E*`/`T*` scopes are in the phase sections below.
 
-1. [x] **T0.1** — Factions, standing & gradual discovery ✅
-2. [x] **T0.2** — Standing panel + deeds move standing ✅
-3. [x] **T0.3** — World news feed (flavor; also a discovery vector) ✅
-4. [x] **E1** — Finale → multi-act Reckoning scaffold ✅  *(E4 fills in the Final Choice; E5 the destiny climaxes)*
-5. [x] **E2** — Protagonist mortality + the two clocks ✅
-6. [ ] **E3** — Hold (grip) + succession
-7. [ ] **T1.1** — Adventure zones + panel scaffold
-8. [ ] **T1.2** — Expeditions (send party, real-time, resolve)
-9. [ ] **T1.3** — Party strength & risk model
-10. [ ] **E4** — The Reckoning content + the Final Choice  *(mortality + adventure now give it stakes)*
-11. [ ] **T2.1** — Hero progression (XP & levels)
-12. [ ] **T2.2** — Equipment & inventory
-13. [ ] **T3.1** — Higher zones gated by standing
-14. [ ] **T3.2** — Beasts & bosses
-15. [ ] **E5** — Destiny climaxes + recurring cast (the Mirror, the Witch, origin payoff)
-16. [ ] **T4.1** — Notoriety meter
-17. [ ] **T4.2** — Adventurer challengers (duels)
-18. [ ] **T5.1** — Defense layer
-19. [ ] **T5.2** — War declarations
-20. [ ] **T5.3** — Siege resolution
-21. [ ] **E6** — Immortality pacts + endings + epilogues  *(capstone, once threats/wars exist)*
-22. [ ] **T6.1** — Disasters with consequences
-23. [ ] **T6.2** — World simulation polish
-24. [ ] **E7** — (stretch) Dynasty / generational continuation
+**Done:** T0.1 ✅ · T0.2 ✅ · T0.3 ✅ · E1 ✅ · E2 ✅
+
+1. [ ] **F1** — Juice layer (floating `+N`, count-ups, milestone fanfares)
+2. [ ] **F2** — Curated-exponential rework (multiplicative buildings, magnitude tiers, milestone ×2)
+3. [ ] **F3** — Next-goal tracker + onboarding
+4. [ ] **F4** — Story-delivery split (Saga vs World; moment-cards + banners)
+5. [ ] **E3** — Hold (grip) + succession  *(heir now also feeds L1)*
+6. [ ] **E4** — The Reckoning content + the Final Choice  *(the climax of one life)*
+7. [ ] **L1** — Succession / reincarnation (world persists; replaces the wipe)
+8. [ ] **L2** — Legend meta-currency (banked at succession)
+9. [ ] **L3** — The Legend tree (permanent meta-upgrades)
+10. [ ] **F5** — Vista accretion + building ASCII art  *(juice polish; can slot earlier)*
+11. [ ] **L4** — Saga across lives (the Bargain/Witch compounds per reincarnation)
+12. [ ] **T1.1–T1.3** — Adventure v1 (zones → expeditions → party/risk)
+13. [ ] **E5** — Destiny climaxes + recurring cast (the Mirror, the Witch, origin payoff)
+14. [ ] **T2.1–T2.2** — Heroes: XP/levels, equipment & inventory
+15. [ ] **T3.1–T3.2** — Adventure expansion (higher zones, beasts & bosses)
+16. [ ] **E6** — Immortality pacts + endings + epilogues  *(also: refuse-succession alt prestige path)*
+17. [ ] **T4.1–T4.2** — Inbound threats (notoriety, adventurer duels)
+18. [ ] **T5.1–T5.3** — Wars (defense, declarations, sieges)
+19. [ ] **T6.1–T6.2** — Disasters & world-sim polish
 - *Slot in when convenient:* **T2.3** (adventure materials), **T3.3** (rich loot tables).
 
-> Detailed scope/acceptance for each item lives in its phase section below.
+> **E7 (dynasty) is absorbed into Pillar 3 / L1–L4** — no longer a stretch goal; it
+> is the spine. Detailed `E*`/`T*` scope/acceptance lives in the phase sections below.
 
 ---
 
@@ -284,6 +287,7 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - Endings that reflect the road (renowned wanderer, dreaded warlord, accepted kingdom).
 
 ## Changelog
+- 2026-06-30 — **Redesign** — added [`REDESIGN.md`](./REDESIGN.md): re-centered the game on a reincarnation/legacy prestige loop (mortality = prestige), curated-exponential escalation, a juice feedback layer, and story-delivery hierarchy. New front-loaded phases **F** (Foundations of Fun: F1–F5) and **L** (Legacy Loop: L1–L4); E7/dynasty absorbed into the loop; build order re-sequenced (make one life fun → make it loop → add breadth).
 - 2026-06-29 — **E2** — Protagonist mortality (`age`/`lifespan`, active-play only) + Renown + the Comet (`s.comet`) countdown; twilight & comet portents; three roads to the Reckoning (Hall / old age / comet); header markers; sanitize/migrate. 20 tests.
 - 2026-06-29 — **E1** — Finale → multi-act Reckoning scaffold: Great Hall begins a staged endgame act (`s.endgame`, `tickReckoning`, `Story.reckoningBeat`) instead of ending instantly; resolves after its beats; header marker; sanitize/migrate. 19 tests.
 - 2026-06-29 — **T0.2 + T0.3** — Standing panel (color-coded, discovered factions only) + deeds move standing (raids/deals/welcoming races/trade); World news feed (caravan/wanderer flavor, comet seeds, second discovery vector). 18 tests.
