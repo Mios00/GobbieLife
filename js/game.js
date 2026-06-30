@@ -55,6 +55,7 @@
       tradeCount: 0,
       buyAmt: 1,           // bulk-buy selector for buildings (1 | 10 | 'max')
       achievements: {},    // id -> true once earned
+      milestones: {},      // id -> true once a scale-milestone fanfare has fired
 
       unlocks: { breeding: false, raids: false, trade: false, destiny: false, finale: false },
 
@@ -663,6 +664,39 @@
     }
   }
 
+  // ---- milestones (escalation fanfares) ------------------------
+  // Fire once when a scale-threshold is first crossed. We record it in
+  // s.milestones (so it never repeats), drop a ⚑ Chronicle line, and push the
+  // text to a transient banner queue the boot loop drains into an on-screen
+  // fanfare. Pure logic + a module-level queue → no DOM here, fully testable.
+  let pendingBanners = [];
+  function checkMilestones(s) {
+    if (!s.milestones) s.milestones = {};
+    for (const m of (GG.MILESTONES || [])) {
+      if (s.milestones[m.id]) continue;
+      let got = false;
+      try { got = m.test(s, Game); } catch (_) { got = false; }
+      if (!got) continue;
+      s.milestones[m.id] = true;
+      const text = (m.silly && Math.random() < (s.silliness || 0)) ? m.silly : m.msg;
+      chronicle(s, '⚑ ' + text);
+      pendingBanners.push(text);
+    }
+  }
+  Game.checkMilestones = checkMilestones;
+  // boot loop calls this each frame and renders any returned banner texts
+  Game.drainBanners = function () { const b = pendingBanners; pendingBanners = []; return b; };
+  // mark every already-true milestone as fired WITHOUT a banner — used on load so
+  // an advanced save doesn't spray retroactive fanfares on its first tick.
+  function primeMilestones(s) {
+    if (!s.milestones) s.milestones = {};
+    for (const m of (GG.MILESTONES || [])) {
+      if (s.milestones[m.id]) continue;
+      let got = false; try { got = m.test(s, Game); } catch (_) { got = false; }
+      if (got) s.milestones[m.id] = true;
+    }
+  }
+
   // ---- destiny meter (only revealed after Totem) ---------------
   Game.destiny = function (s) {
     const scores = {};
@@ -766,6 +800,7 @@
     if (tp > (s.peakPop || 0)) s.peakPop = tp; // peak whole-tribe size gates building reveals
     checkChapters(s);
     checkAchievements(s);
+    checkMilestones(s);
     s.lastSeen = Date.now();
   };
 
@@ -840,7 +875,10 @@
     merged.totals = Object.assign({}, base.totals, s.totals);
     merged.raid = Object.assign({}, base.raid, s.raid);
     merged.achievements = Object.assign({}, s.achievements || {});
-    return sanitizeState(merged, base);
+    merged.milestones = Object.assign({}, s.milestones || {});
+    const out = sanitizeState(merged, base);
+    primeMilestones(out); // an already-advanced save shouldn't banner retroactively
+    return out;
   }
 
   // ---- save hardening ------------------------------------------
@@ -912,6 +950,10 @@
     const ach = {};
     for (const a of (GG.ACHIEVEMENTS || [])) if (m.achievements && m.achievements[a.id]) ach[a.id] = true;
     m.achievements = ach;
+    // milestones → only known ids, boolean-true (rejects "__proto__"/unknowns)
+    const mil = {};
+    for (const def of (GG.MILESTONES || [])) if (m.milestones && m.milestones[def.id]) mil[def.id] = true;
+    m.milestones = mil;
     // narrative text (escaped on render, but coerce + bound length anyway)
     m.name = str(m.name, base.name);
     m.legendIntro = str(m.legendIntro, base.legendIntro);

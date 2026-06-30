@@ -220,3 +220,52 @@ button { font-family: inherit; cursor: pointer; }
 .act.begin { text-align: center; border-color: var(--moss); color: var(--moss); font-size: 15px; padding: 12px; }
 .act.begin:hover { background: var(--moss); color: var(--bg); }
 .startnote { color: var(--dim); font-size: 11px; margin-top: 12px; opacity: .8; }
+
+/* ============================================================
+ * JUICE (F1) — feedback that makes actions FELT
+ * ============================================================ */
+
+/* satisfying press on every interactive control */
+.act:active:not(:disabled), .mini:active, .mini2:active,
+.build:active:not(:disabled), .pill:active, .link:active {
+  transform: translateY(1px) scale(.985);
+}
+
+/* floating "+N" gains spawned at the click point */
+#fx { position: fixed; inset: 0; pointer-events: none; z-index: 50; overflow: hidden; }
+.floater {
+  position: fixed; transform: translate(-50%, 0); will-change: transform, opacity;
+  color: var(--moss); font-weight: bold; font-size: 15px; letter-spacing: 1px;
+  text-shadow: 0 1px 3px #000, 0 0 6px rgba(123,211,106,.4); white-space: nowrap;
+  animation: floatup .92s cubic-bezier(.2,.7,.3,1) forwards;
+}
+@keyframes floatup {
+  0%   { opacity: 0; transform: translate(-50%, 6px) scale(.7); }
+  18%  { opacity: 1; transform: translate(-50%, -2px) scale(1.05); }
+  100% { opacity: 0; transform: translate(-50%, -38px) scale(1); }
+}
+
+/* milestone fanfare banners — stack, top-centre, auto-dismissed by JS */
+#banners {
+  position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 60;
+  display: flex; flex-direction: column; gap: 8px; align-items: center;
+  pointer-events: none; width: min(560px, 92vw);
+}
+.banner {
+  background: linear-gradient(180deg, #273317, #1a2113); border: 1px solid var(--gold);
+  border-radius: 8px; color: var(--gold); padding: 10px 16px; font-size: 13px;
+  text-align: center; line-height: 1.4; box-shadow: 0 8px 24px rgba(0,0,0,.55);
+  animation: bannerin .42s ease, bannerglow 1.6s ease-in-out 1, bannerout .5s ease 3.05s forwards;
+}
+.banner .bmark { color: var(--gold); margin-right: 4px; }
+@keyframes bannerin  { from { opacity: 0; transform: translateY(-14px) scale(.95); } to { opacity: 1; transform: none; } }
+@keyframes bannerout { to { opacity: 0; transform: translateY(-10px); } }
+@keyframes bannerglow { 0%,100% { box-shadow: 0 8px 24px rgba(0,0,0,.55); } 50% { box-shadow: 0 8px 30px rgba(231,198,107,.4); } }
+
+/* respect reduced-motion: keep the information, drop the movement */
+@media (prefers-reduced-motion: reduce) {
+  .act:active, .mini:active, .mini2:active, .build:active, .pill:active, .link:active { transform: none; }
+  .floater { animation: floatfade .92s ease-out forwards; }
+  @keyframes floatfade { 0% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
+  .banner { animation: bannerout .4s ease 3.2s forwards; }
+}
