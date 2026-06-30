@@ -120,10 +120,13 @@
         <span class="goaldest">→ ${esc(goal.title)}</span>
         <span class="gbar"><span style="width:${Math.round(goal.frac * 100)}%"></span></span>
       </div>` : '';
+    const maxLives = (GG.CONFIG && GG.CONFIG.sagaLives) || 4;
+    const sagaTag = (s.sagaLife || 1) > 1
+      ? ` &nbsp;·&nbsp; <span class="sagatag" title="Current life in the Saga">Life ${s.sagaLife || 1}/${maxLives}</span>` : '';
     setHTML($('hdr'), 'hdr',
       `<div class="title">GOBLIN <span class="sub">— a tale of growth &amp; shenanigans</span></div>
        <div class="meta"><b>${esc(s.name)}</b> &nbsp;·&nbsp; ${esc(chap)}
-         &nbsp;·&nbsp; <span class="silly" title="The Silliness Index you set at the start">Silliness ${pct}% · ${esc(UI.sillyTier(s.silliness))}</span>${renown}${twilight}${comet}${reckon}</div>${goalHtml}`);
+         &nbsp;·&nbsp; <span class="silly" title="The Silliness Index you set at the start">Silliness ${pct}% · ${esc(UI.sillyTier(s.silliness))}</span>${renown}${sagaTag}${twilight}${comet}${reckon}</div>${goalHtml}`);
   }
 
   // shared tier naming + flavor for the Silliness Index (0..1)
@@ -478,11 +481,38 @@
   let lastModalObj;          // undefined → forces the first render
   let lastModalAfford = '';
 
+  function renderLegendTree(s) {
+    const tree = GG.LEGEND_TREE || [];
+    const pool = s.sagaLegend || 0;
+    const rows = tree.map(function (upg) {
+      const owned = !!(s.legendSpent && s.legendSpent[upg.id]);
+      const canBuy = Game.canBuyLegend(s, upg.id);
+      const cls = owned ? 'lt-upg owned' : canBuy ? 'lt-upg affordable' : 'lt-upg';
+      const btn = owned
+        ? '<span class="lt-owned">✦ Owned</span>'
+        : `<button class="act lt-buy" data-act="buyLegend" data-id="${esc(upg.id)}" ${canBuy ? '' : 'disabled'}>${canBuy ? 'Buy' : 'Need ' + upg.cost + ' ✦'}</button>`;
+      return `<div class="${cls}">
+        <span class="lt-cost">${owned ? '✦' : upg.cost + ' ✦'}</span>
+        <div class="lt-body"><b class="lt-name">${esc(upg.name)}</b><span class="lt-desc">${esc(upg.desc)}</span>${btn}</div>
+      </div>`;
+    }).join('');
+    return `<div class="legacy-section">
+      <h2 class="legacy-h">✦ The Legacy</h2>
+      <p class="legacy-pool">✦ <b>${pool}</b> Legend to spend</p>
+      <div class="legend-tree">${rows}</div>
+    </div>`;
+  }
+
   function renderModal(s) {
     const el = $('modal');
     const obj = s.ending || s.pendingChoice || null;
     let afford = '';
-    if (!s.ending && s.pendingChoice) {
+    if (s.ending) {
+      const maxLives = (GG.CONFIG && GG.CONFIG.sagaLives) || 4;
+      const isLast = (s.sagaLife || 1) >= maxLives;
+      // dedup key includes legend pool + spent so buying an upgrade refreshes the tree
+      afford = (s.sagaLegend || 0) + '|' + JSON.stringify(s.legendSpent || {}) + '|' + isLast;
+    } else if (s.pendingChoice) {
       afford = s.pendingChoice.options
         .map((o) => (!o.cost || Game.canAfford(s, o.cost)) ? '1' : '0').join('');
     }
@@ -491,15 +521,24 @@
     lastModalAfford = afford;
 
     if (s.ending) {
+      const maxLives = (GG.CONFIG && GG.CONFIG.sagaLives) || 4;
+      const isLast = (s.sagaLife || 1) >= maxLives;
       el.style.display = 'flex';
+      const lifeLabel = `Life ${s.sagaLife || 1} of ${maxLives}`;
+      const treeHtml = isLast ? '' : renderLegendTree(s);
+      const nextBtn = isLast
+        ? `<button class="act" data-act="restart">Begin a new goblin's tale →</button>`
+        : `<button class="act succession-btn" data-act="succession">Begin Life ${(s.sagaLife || 1) + 1} of ${maxLives} →</button>`;
       el.innerHTML = `<div class="card ending">
+        <div class="life-label">${esc(lifeLabel)}</div>
         <h1>${esc(s.ending.name)}</h1>
         ${s.ending.text.map((p) => `<p>${esc(p)}</p>`).join('')}
         <div class="endstats">
           greed ${s.stats.greed.toFixed(0)} · cruelty ${s.stats.cruelty.toFixed(0)} ·
           openness ${s.stats.openness.toFixed(0)} · wanderlust ${s.stats.wanderlust.toFixed(0)}
         </div>
-        <button class="act" data-act="restart">Begin a new goblin's tale →</button>
+        ${treeHtml}
+        ${nextBtn}
       </div>`;
       return;
     }
@@ -589,6 +628,8 @@
       else if (act === 'choice') Game.resolveChoice(s, parseInt(t.dataset.i, 10));
       else if (act === 'nameHeir') Game.nameHeir(s, parseInt(t.dataset.id, 10));
       else if (act === 'clearHeir') Game.clearHeir(s);
+      else if (act === 'buyLegend') { Game.buyLegend(s, t.dataset.id); lastModalObj = null; }
+      else if (act === 'succession') { Game.succession(s); lastModalObj = null; _memo = Object.create(null); }
       else if (act === 'restart') onChange('restart');
       else if (act === 'export') onChange('export');
       else if (act === 'import') onChange('import');

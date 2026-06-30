@@ -79,6 +79,12 @@
       heir: null,          // id of designated successor notable (integer) or null
       resentment: 0,       // accumulated unrest (0–100); erodes hold
       log: [],             // short transient action feedback
+
+      // Saga / Legacy (L1–L3)
+      sagaLife: 1,         // current life within the Saga (1 … sagaLives)
+      sagaLegend: 0,       // ✦ Legend banked (prior lives' earned; current life's added at Game.finish)
+      legendSpent: {},     // legend-tree upgrades purchased (id → true)
+      founder: null,       // { name, endingId, endingName, lifeNum } from the previous life
     };
   }
 
@@ -149,6 +155,12 @@
     // balance, and every pinned-rate test, exactly as before).
     const mult = Game.globalMult(s);
     r.mushrooms *= mult; r.scrap *= mult; r.shinies *= mult;
+    // Legend tree: +20% to all positive resource production (applied before upkeep)
+    if (s.legendSpent && s.legendSpent.prod_boost) {
+      for (const k of ['mushrooms', 'scrap', 'shinies']) {
+        if ((r[k] || 0) > 0) r[k] *= 1.2;
+      }
+    }
     // upkeep — goblins and guests eat (NOT scaled); larger settlements also need
     // maintenance proportional to their tier (keeps big warrens from being free).
     r.mushrooms -= Game.totalPop(s) * C.upkeepPerGoblin;
@@ -514,7 +526,8 @@
     const tgt = s.raid.target;
     s.raid = { active: false, returnsAt: 0, target: null };
     s.raidCount += 1;
-    s.renown = (s.renown || 0) + 2; // raids make a name for you, for good or ill
+    const raidRenownMult = (s.legendSpent && s.legendSpent.renown_boost) ? 2 : 1;
+    s.renown = (s.renown || 0) + 2 * raidRenownMult; // raids make a name for you
     // surface the choice to the player (silly or earnest face)
     const v = pickVariant(tgt, s);
     s.pendingChoice = {
@@ -1003,7 +1016,8 @@
     renownAccum += dt;
     if (renownAccum >= (C.renownEverySec || 30)) {
       renownAccum = 0;
-      s.renown = (s.renown || 0) + 1 + Game.settlementTier(s); // legend grows with grandeur
+      const renownMult = (s.legendSpent && s.legendSpent.renown_boost) ? 2 : 1;
+      s.renown = (s.renown || 0) + (1 + Game.settlementTier(s)) * renownMult;
     }
     // twilight portents as your end nears
     const r = s.age / Math.max(1, s.lifespan);
@@ -1036,6 +1050,143 @@
     const id = (endingId && has(GG.ENDINGS, endingId)) ? endingId : (Game.destiny(s).lead || 'chaos');
     s.ending = { id, name: GG.ENDINGS[id].name, text: GG.Story.finale(id, s.silliness) };
     chronicle(s, '════ THE END ════', 'saga');
+    // bank ✦ Legend earned this life so the legacy screen can spend it immediately
+    s.sagaLegend = (s.sagaLegend || 0) + Game.legendEarned(s);
+  };
+
+  // ---- legacy / succession (L1–L3) --------------------------------
+
+  // ✦ Legend earned from this life's achievements; uses s.ending for the ending bonus.
+  Game.legendEarned = function (s) {
+    let pts = 0;
+    pts += Math.floor((s.renown || 0) / 5);       // legend through renown
+    pts += Game.settlementTier(s) * 2;             // city size
+    for (const id in GG.FACTIONS) {
+      if ((s.standing && s.standing[id] || 0) >= 70) pts++; // each allied faction
+    }
+    const endingBonus = { chaos: 2, multirace: 3, purist: 2, villain: 1 };
+    if (s.ending) pts += (endingBonus[s.ending.id] || 0);
+    return Math.max(1, Math.floor(pts));
+  };
+
+  // Can the player buy a legend-tree upgrade right now?
+  // Only purchasable on the legacy screen (s.ending set) with enough in the bank.
+  Game.canBuyLegend = function (s, id) {
+    if (!s.ending) return false;
+    const def = (GG.LEGEND_TREE || []).find((u) => u.id === id);
+    if (!def) return false;
+    if (s.legendSpent && s.legendSpent[id]) return false; // already owned
+    return (s.sagaLegend || 0) >= def.cost;
+  };
+
+  // Purchase a legend-tree upgrade (deducts from sagaLegend).
+  Game.buyLegend = function (s, id) {
+    if (!Game.canBuyLegend(s, id)) return false;
+    const def = (GG.LEGEND_TREE || []).find((u) => u.id === id);
+    if (!s.legendSpent) s.legendSpent = {};
+    s.legendSpent[id] = true;
+    s.sagaLegend = (s.sagaLegend || 0) - def.cost;
+    return true;
+  };
+
+  // Begin the next life: world persists, personal arc resets.
+  // Only callable when s.ending is set and sagaLife < sagaLives.
+  Game.succession = function (s) {
+    if (!s.ending) return;
+    const maxLives = GG.CONFIG.sagaLives || 4;
+    if ((s.sagaLife || 1) >= maxLives) return; // last life → handled by L4, not succession
+
+    const newSagaLife = (s.sagaLife || 1) + 1;
+    const founder = {
+      name: s.name,
+      endingId: s.ending.id,
+      endingName: s.ending.name,
+      lifeNum: s.sagaLife || 1,
+    };
+    const spentSoFar = Object.assign({}, s.legendSpent || {});
+
+    // world state that persists (with standing decay to reflect time passage)
+    const worldStanding = {};
+    for (const id in s.standing) {
+      worldStanding[id] = Math.round((s.standing[id] || 0) * 0.85);
+    }
+    if (spentSoFar.faction_floor) {
+      for (const id in worldStanding) {
+        if (worldStanding[id] < -20) worldStanding[id] = -20; // floor at Wary
+      }
+    }
+
+    // new protagonist: heir or new runt
+    const heirNotable = s.heir ? s.notables.find(function (nb) { return nb.id === s.heir; }) : null;
+    const isHeir = !!heirNotable;
+    const mort = freshMortality();
+    let newName, newLegendIntro;
+    if (heirNotable) {
+      newName = heirNotable.name;
+      newLegendIntro = GG.Story.heirIntro(heirNotable, founder, s.silliness);
+    } else {
+      const leg = GG.Story.makeLegend(s.silliness);
+      newName = leg.name;
+      newLegendIntro = leg.intro.replace('#NAME#', leg.name);
+    }
+
+    // carry forward unlocks (buildings persist → raids/trade stay active);
+    // augment with legend-tree purchases; reset finale so Reckoning must be earned again
+    const worldUnlocks = Object.assign({}, s.unlocks);
+    worldUnlocks.raids = worldUnlocks.raids || !!spentSoFar.start_raids;
+    worldUnlocks.trade = worldUnlocks.trade || !!spentSoFar.start_trade;
+    worldUnlocks.finale = false; // Reckoning must be earned each life
+
+    // reset s in place for the new life
+    s.sagaLife = newSagaLife;
+    // sagaLegend already reflects earned from this life (banked in Game.finish)
+    s.legendSpent = spentSoFar;
+    s.founder = founder;
+    s.name = newName;
+    s.legendIntro = newLegendIntro;
+    s.startedAt = Date.now();
+    s.lastSeen = Date.now();
+    s.resources = { mushrooms: 0, scrap: 0, shinies: 0 };
+    s.totals = { shiniesTotal: 0 };
+    s.population = spentSoFar.pop_start ? 3 : 1;
+    s.peakPop = s.population;
+    s.races = { dwarf: 0, human: 0, elf: 0 };
+    s.notables = s.notables.slice(); // bloodlines persist unchanged
+    s.standing = worldStanding;
+    s.discovered = Object.assign({}, s.discovered);
+    s.jobs = { forage: 0, dig: 0, raid: 0 };
+    // buildings, settle, chapter, breakthroughs, milestones, achievements, eraSeen persist
+    s.stats = { greed: 0, cruelty: 0, openness: 0, wanderlust: 0 };
+    if (isHeir && spentSoFar.heir_bonus) {
+      s.stats.cruelty = 40; // predecessor's fearsome reputation lingers
+    }
+    s.raidCount = 0;
+    s.tradeCount = 0;
+    s.buyAmt = 1;
+    s.unlocks = worldUnlocks;
+    s.breedProgress = 0;
+    s.raid = { active: false, returnsAt: 0, target: null };
+    s.pendingChoice = null;
+    s.chronicle = [];
+    s.chronCount = 0;
+    s.lastOracle = null;
+    s.endgame = { active: false, stage: 0, accum: 0 };
+    s.age = 0;
+    s.lifespan = mort.lifespan;
+    s.renown = 0;
+    s.twilight = 0;
+    s.comet = mort.comet;
+    s.ending = null;
+    s.heir = null;
+    s.resentment = 0;
+    s.log = [];
+
+    // chronicle the start of the new life
+    const sagaTag = 'Life ' + newSagaLife + ' of ' + maxLives + '.';
+    const who = heirNotable
+      ? newName + ' inherits the warren of ' + founder.name + '.'
+      : 'A new runt crawls out of the mud — the warren endures.';
+    chronicle(s, sagaTag + ' ' + who, 'saga');
   };
 
   // ---- master tick ---------------------------------------------
@@ -1094,7 +1245,8 @@
     const now = Date.now();
     let dt = (now - s.lastSeen) / 1000;
     if (dt < 5) return 0;
-    const capped = Math.min(dt, C.offlineCapHours * 3600);
+    const capHours = (s.legendSpent && s.legendSpent.offline_cap) ? 24 : (C.offlineCapHours || 8);
+    const capped = Math.min(dt, capHours * 3600);
     applyProduction(s, capped);
     s.lastSeen = now;
     return capped;
@@ -1283,6 +1435,22 @@
     m.raid = Object.assign({ active: false, returnsAt: 0, target: null }, m.raid);
     m.raid.active = bool(m.raid.active);
     m.raid.returnsAt = n(m.raid.returnsAt);
+    // Saga / Legacy (L1–L3)
+    m.sagaLife = Math.max(1, Math.min(GG.CONFIG.sagaLives || 4, intNonneg(m.sagaLife, 1)));
+    m.sagaLegend = intNonneg(m.sagaLegend, 0);
+    const ltSpent = (m.legendSpent && typeof m.legendSpent === 'object') ? m.legendSpent : {};
+    m.legendSpent = {};
+    for (const upg of (GG.LEGEND_TREE || [])) { if (ltSpent[upg.id]) m.legendSpent[upg.id] = true; }
+    if (m.founder && typeof m.founder === 'object') {
+      m.founder = {
+        name: str(m.founder.name, ''),
+        endingId: has(GG.ENDINGS, m.founder.endingId) ? str(m.founder.endingId, '') : '',
+        endingName: str(m.founder.endingName, ''),
+        lifeNum: Math.max(1, intNonneg(m.founder.lifeNum, 1)),
+      };
+    } else {
+      m.founder = null;
+    }
     return m;
   }
 })();

@@ -116,9 +116,9 @@ fun → make it loop → then add breadth.** `F*`/`L*` scopes are in `REDESIGN.m
 8. [x] **F7** — Economy rebalance + building caps + tier gates + pacing ✅
 9. [x] **E3** — Hold (grip) + succession ✅
 10. [x] **E4** — The Reckoning content + the Final Choice ✅
-11. [ ] **L1** — Succession / reincarnation (world persists; bounded to `sagaLives`)
-12. [ ] **L2** — Legend meta-currency (banked at succession)
-13. [ ] **L3** — The Legend tree (~6–10 meta-upgrades)
+11. [x] **L1** — Succession / reincarnation (world persists; bounded to `sagaLives`) ✅
+12. [x] **L2** — Legend meta-currency (banked at succession) ✅
+13. [x] **L3** — The Legend tree (~6–10 meta-upgrades) ✅
 14. [ ] **F8** — Refinement chain (ash/iron/grit)
 15. [ ] **F5** — Vista accretion + building ASCII art  *(juice polish)*
 16. [ ] **L4** — The Saga's finale (Bargain resolves after the final life)
@@ -862,4 +862,5 @@ which notables survived, the heir's nature, the city tier, the Silliness Index).
 - 2026-06-29 — **Build order** — added a single Blended build order interleaving the world track (T*) and story track (E*); story is woven through, not appended after.
 - 2026-06-29 — **Story design** — added the Story Bible (The Bargain spine, one-story-four-lenses, recurring cast, two clocks, the Final Choice, mortality & succession, become-the-Oracle, endings) and **Phase E** (E1–E7) endgame/story tasks.
 - 2026-06-29 — **T0.1** — Factions data model (11 factions), per-faction standing + tiers, gradual discovery (chapter-driven for now), sanitize/migrate, 24 tests.
+- 2026-06-30 — **L1/L2/L3** — Succession + Legend currency + Legend tree: game over no longer a hard wipe. `Game.finish` banks ✦ Legend earned (`renown/5 + tier×2 + allied factions + ending bonus`). The ending modal shows a **Legend Tree** (8 upgrades: prod\_boost, start\_raids, start\_trade, faction\_floor, pop\_start, renown\_boost, offline\_cap, heir\_bonus; purchasable before the next life begins). `Game.succession(s)` resets the personal arc (age/comet/stats/chronicle/resources) while preserving the world (buildings, standing ×0.85, notables, breakthroughs, chapter, milestones, achievements); heir designation sets the new protagonist + unlocks `heir_bonus` cruelty start; `CONFIG.sagaLives: 4`. All legend-tree effects wired (prod×1.2 in `Game.rates`, offline cap 24 h, doubled renown, faction floor at succession, 3-goblin start, raid/trade pre-unlocked, heir cruelty). Header shows "Life N/4" from Life 2 onward. `Story.heirIntro` adds heir-succession intro text (earnest + silly). Full sanitize/migrate coverage; `tests/test-succession.js` (69 assertions). 554 total assertions green.
 - _(append: date — task id — one line, as tasks are completed)_
