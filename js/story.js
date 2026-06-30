@@ -449,15 +449,38 @@
     'The Great Hall rises, beam by impossible beam — and far beyond the wood, the powers of the world turn their heads toward a goblin who was meant to stay a rumour. The Reckoning begins.',
     'Word spreads like fire on dry grass. Banners are counted, old debts remembered. Something is gathering at the edge of the map, and it is gathering toward you.',
     'The horizon darkens with the weight of everyone you have ever touched — every mercy, every cruelty, every road taken or refused. The hour is almost upon you.',
+    'The Totem blazes once — no riddles tonight. "You are what you chose to be," it says, "and nothing else. The road took its shape from your footprints. What comes next is the ending of the story you wrote." Then it goes quiet, and stays quiet.',
+    'In the stillness before the last tide, you understand: this was always the Bargain. Not a contract signed in darkness — every choice you ever made, accumulating into the shape of an ending. The door is here. You have been walking toward it since the day you crawled out of the flooded hole.',
   ];
   const RECKONING_SILLY = [
     'The Great Hall goes up beam by improbable beam, and the entire world simultaneously gets a push notification about a goblin it was promised would stay irrelevant. The Reckoning begins (sorry).',
     'The news goes viral. Banners are counted. Old grudges reactivate like dormant subscriptions. Something is coming, and it has your address.',
     'The horizon fills up ominously, like a group chat you were added to without consent. Everything you have ever done is about to be tallied by people with very strong opinions.',
+    'The Totem blazes once and, for the very first time, drops the metaphors entirely: "You are exactly what you kept doing over and over until it was a personality," it says. "The story has your fingerprints on every page. Here comes the part where it stops." Then the Totem goes dark in a way that feels very final.',
+    'In the terrible quiet before the end, it becomes clear: the Bargain was the vibe all along. Not a formal agreement so much as a lifestyle that got away from you. Every mushroom, every raid, every suspicious decision — all of it was just the setup. The door has been here the whole time. You have, essentially, been agreeing to this for ages.',
   ];
   S.reckoningBeat = function (stage, sill) {
     const pool = silly(sill) ? RECKONING_SILLY : RECKONING;
     return (stage >= 0 && stage < pool.length) ? pool[stage] : null;
+  };
+
+  // --- the Final Choice (E4) ------------------------------------
+  // The modal text + per-option labels for each available door.
+  const FINAL_CHOICE_TEXT = {
+    earnest: 'The door is open. All your choices led here. Not every road is yours to take — but those that are, only you can walk. What does the runt from the flooded hole choose, at the very last?',
+    silly: 'Here you are. At the end of the whole goblin thing. Some roads are locked (you didn\'t earn them; that\'s fine; no judgment (a little judgment)). The ones that are open are genuinely yours. So: what\'s it going to be?',
+  };
+  const NATURAL_LABELS = {
+    purist:    'This warren endures. Ours alone. As it should be.',
+    multirace: 'The gates stay open. They always were.',
+    chaos:     'The road. Always the road.',
+    villain:   'Let the name loom forever.',
+  };
+  S.finalChoiceText = function (sill) {
+    return silly(sill) ? FINAL_CHOICE_TEXT.silly : FINAL_CHOICE_TEXT.earnest;
+  };
+  S.naturalChoiceLabel = function (endingId) {
+    return NATURAL_LABELS[endingId] || 'Accept what comes.';
   };
 
   // --- the two clocks: your mortality, and the Comet ------------

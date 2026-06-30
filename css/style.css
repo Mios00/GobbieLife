@@ -234,6 +234,11 @@ button { font-family: inherit; cursor: pointer; }
 .card.ending h1 { color: var(--moss); text-align: center; font-size: 26px; }
 .card.ending p { line-height: 1.6; }
 .endstats { color: var(--dim); font-size: 12px; text-align: center; margin: 16px 0; letter-spacing: 1px; }
+.card.final-choice { border-color: var(--gold); }
+.card.final-choice h1 { color: var(--gold); text-align: center; font-size: 20px; letter-spacing: 2px; }
+.card.final-choice p { color: var(--ink); text-align: center; font-style: italic; }
+.final-opt { display: block; width: 100%; text-align: left; margin-bottom: 7px; border-color: var(--dim); }
+.final-opt:last-child { margin-bottom: 0; }
 
 .silly { color: var(--gold); }
 .reckon { color: var(--blood); font-weight: bold; letter-spacing: 1px; }
