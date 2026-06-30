@@ -13,6 +13,7 @@
     saveKey: 'goblin_idle_save_v1',
     offlineCapHours: 8,      // max offline time credited on return
     upkeepPerGoblin: 0.03,   // mushrooms/sec eaten per goblin
+    tierUpkeepPerSec: 0.04,  // extra mushrooms/sec per settlement tier (settlement maintenance)
     ambientStoryEverySec: 45, // ambient chronicle entry cadence (faster = richer history)
     oracleEverySec: 100,     // how often the Totem utters an Oracle riddle
     worldNewsEverySec: 130,  // how often a caravan/wanderer brings news of the wider world
@@ -157,21 +158,23 @@
   // `revealPop`: the build option stays hidden until your tribe has *peaked* at
   // this many goblins — so the build menu unfolds gradually as the warren grows
   // rather than dumping every option at once. (Default 0 = always available.)
+  // role taxonomy: 'producer' (output scales with level, DR applies), 'caphouse'
+  // (raises goblin cap), 'utility' (unique effect, hard-capped), 'landmark' (max 1)
   GG.BUILDINGS = {
     mushroomPatch: {
-      name: 'Mushroom Patch',
+      name: 'Mushroom Patch', role: 'producer',
       blurb: 'Damp, cultivated caverns. Grows mushrooms on their own.',
       base: { scrap: 6 }, growth: 1.55,
       prod: { mushrooms: 0.5 },
     },
     scrapHeap: {
-      name: 'Scrap Heap',
+      name: 'Scrap Heap', role: 'producer',
       blurb: 'A picked-over junk pile. Goblins love junk.',
       base: { mushrooms: 8 }, growth: 1.55,
       prod: { scrap: 0.4 },
     },
     burrow: {
-      name: 'Burrow',
+      name: 'Burrow', role: 'caphouse',
       blurb: 'More tunnels, more goblins. Raises your goblin cap and lets the tribe breed.',
       base: { mushrooms: 12, scrap: 9 }, growth: 1.6,
       capPlus: 3,
@@ -179,7 +182,7 @@
       settle: 1,
     },
     warTent: {
-      name: 'War Tent',
+      name: 'War Tent', role: 'utility', max: 1,
       blurb: 'Crude spears and worse manners. Unlocks raids.',
       base: { scrap: 38, mushrooms: 24 }, growth: 1.85,
       unlocks: 'raids',
@@ -188,7 +191,7 @@
       revealPop: 4,
     },
     tradingPost: {
-      name: 'Trading Post',
+      name: 'Trading Post', role: 'utility', max: 1,
       blurb: 'A rickety stall on the road. Other folk start to visit... and trade.',
       base: { scrap: 34, shinies: 6 }, growth: 1.85,
       unlocks: 'trade',
@@ -197,7 +200,7 @@
       revealPop: 5,
     },
     lookout: {
-      name: 'Lookout Warren',
+      name: 'Lookout Warren', role: 'utility', max: 3,
       blurb: 'Sharp-eyed sentries watch the dark. Raids go better and nasty surprises come less often.',
       base: { scrap: 30, mushrooms: 20 }, growth: 1.8,
       needs: 'raids',
@@ -205,7 +208,7 @@
       revealPop: 6,
     },
     brewery: {
-      name: 'Mushroom Brewery',
+      name: 'Mushroom Brewery', role: 'producer',
       blurb: 'Goblins ferment spare mushrooms into a potent ale the tall folk pay dearly for. Slow, steady coin.',
       base: { scrap: 44, mushrooms: 40 }, growth: 1.7,
       prod: { shinies: 0.12, mushrooms: -0.35 },
@@ -215,7 +218,7 @@
       revealPop: 8,
     },
     totem: {
-      name: 'Totem of Tales',
+      name: 'Totem of Tales', role: 'utility', max: 1,
       blurb: 'A carved idol that remembers. Your story is told more often, and your destiny grows clearer.',
       base: { scrap: 30, mushrooms: 30 }, growth: 2.0,
       unlocks: 'destiny',
@@ -223,7 +226,7 @@
       revealPop: 10,
     },
     greatHall: {
-      name: 'Great Hall',
+      name: 'Great Hall', role: 'landmark',
       blurb: 'The seat of something larger than a warren. Raising it brings your tale to its end.',
       base: { scrap: 220, shinies: 90, mushrooms: 160 }, growth: 3.0,
       max: 1,
@@ -758,39 +761,49 @@
     { id: 'pop5',  mult: 1.5, test: (s) => s.population >= 5,
       msg: 'The warren swells to five. It is, suddenly, a crowd — and the crowd is yours.',
       silly: 'Population: five. That is a whole HAND of goblins. You count them twice to be sure. Still five. Magnificent.' },
-    { id: 'pop10', mult: 1.5, test: (s) => s.population >= 10,
+    { id: 'pop10', mult: 1.3, test: (s) => s.population >= 10,
       msg: 'Ten goblins now answer to you. The dark feels a great deal less dark.',
       silly: 'Ten goblins. Double digits, baby. You have, against all odds and several health codes, a workforce.' },
     { id: 'pop20', mult: 2, test: (s) => s.population >= 20,
       msg: 'Twenty strong. The warren has the loud, warm chaos of a real tribe now.',
       silly: 'Twenty goblins. This is no longer "a few lads." This is a SITUATION, and you are legally responsible for it.' },
-    { id: 'pop35', mult: 2, test: (s) => s.population >= 35,
+    { id: 'pop35', mult: 1.4, test: (s) => s.population >= 35,
       msg: 'Thirty-five goblins. Strangers on the road lower their voices when they pass your wood.',
       silly: 'Thirty-five goblins. You have achieved the population of a small, deeply concerning town. HR is just one tired goblin.' },
-    { id: 'hoard100', mult: 1.5, test: (s) => s.totals.shiniesTotal >= 100,
+    { id: 'hoard100', mult: 1.3, test: (s) => s.totals.shiniesTotal >= 100,
       msg: 'A hundred shinies have passed through your hands. A proper little pouch of wealth.',
       silly: 'One hundred shinies, lifetime. You have a POUCH now. You pat it. It jingles. Do not, under any circumstances, check the exchange rate.' },
-    { id: 'hoard500', mult: 2, test: (s) => s.totals.shiniesTotal >= 500,
+    { id: 'hoard500', mult: 1.4, test: (s) => s.totals.shiniesTotal >= 500,
       msg: 'Five hundred shinies, all told. The hoard throws back a glow when the torches catch it.',
       silly: 'Five hundred shinies. The hoard now makes a satisfying clink-avalanche when you flop into it. Yes, you flop into it. That is what it is FOR.' },
-    { id: 'hoard2000', mult: 2, test: (s) => s.totals.shiniesTotal >= 2000,
+    { id: 'hoard2000', mult: 1.5, test: (s) => s.totals.shiniesTotal >= 2000,
       msg: 'Two thousand shinies have flowed through the warren. A goblin from a flooded hole, sitting on a real fortune.',
       silly: 'Two thousand shinies. You have begun referring to the hoard as "the portfolio." Nobody is allowed to stop you. Nobody dares.' },
-    { id: 'tier2', mult: 1.5, test: (s, G) => G.settlementTier(s) >= 2,
+    { id: 'tier2', mult: 1.3, test: (s, G) => G.settlementTier(s) >= 2,
       msg: 'Tents and cook-fires spill past the cave mouth. From the road, your home finally looks like somewhere people live.',
       silly: 'Your hole has TENTS now. This is basically real estate. You are, in a very loose legal sense, a developer.' },
-    { id: 'tier4', mult: 2, test: (s, G) => G.settlementTier(s) >= 4,
+    { id: 'tier4', mult: 1.5, test: (s, G) => G.settlementTier(s) >= 4,
       msg: 'Palisades, a market road, the clang of trade. They say "the goblins" with a capital G now.',
       silly: 'You have walls and a market and a CAPITAL G. People say "the Goblins" with a small, tired sigh. Iconic. Unforgettable. A brand.' },
     { id: 'tier6', mult: 3, test: (s, G) => G.settlementTier(s) >= 6,
       msg: 'A lamp-lit city, loud and strange and gloriously alive. From a flooded hole to THIS. You did that.',
       silly: 'A whole CITY. Lamps, streets, the works. From one damp puddle to a metropolis — frankly the glow-up is so unreal the bards refuse to believe it.' },
-    { id: 'builds5', mult: 2, test: (s, G) => G.distinctBuildings(s) >= 5,
+    { id: 'builds5', mult: 1.5, test: (s, G) => G.distinctBuildings(s) >= 5,
       msg: 'Five kinds of structure stand in the warren. It has the busy, lived-in look of a place with plans.',
       silly: 'Five different buildings. You have a SKYLINE. A small, lumpy, structurally suspect skyline — but a skyline, and it is yours.' },
-    { id: 'firstGuest', mult: 1.5, test: (s) => { for (const rc in (s.races || {})) if (s.races[rc] > 0) return true; return false; },
+    { id: 'firstGuest', mult: 1.3, test: (s) => { for (const rc in (s.races || {})) if (s.races[rc] > 0) return true; return false; },
       msg: 'For the first time, a face that isn\'t green calls the warren home. The world is bigger inside your walls than out.',
       silly: 'Someone who is NOT a goblin lives here now. On purpose! The warren is, technically, multicultural. The Totem is thrilled. The goblins are baffled.' },
+  ];
+
+  // --- Era breakthroughs (narrative gates between the three Eras) ---------------
+  // Auto-fire when the settlement first crosses into each era; stored in
+  // s.breakthroughs so a loaded save never re-fires the same gate.
+  GG.BREAKTHROUGHS = [
+    { id: 'era2', era: 2, name: 'Breach the Surface',
+      msg: 'The warren breaks into daylight. Trade routes open; the world notices.' },
+    { id: 'era3', era: 3, name: 'Stoke the Furnaces',
+      msg: 'Industry takes root. The age of iron and ambition has arrived.' },
   ];
 
   // --- Magnitude tiers (curated-exponential legibility) ---------
